@@ -1,19 +1,25 @@
 import type { Input } from "../engine/Input";
 import { Rect } from "../engine/Rect";
-import { clamp } from "../engine/Vector2";
+import { clamp, Vector2 } from "../engine/Vector2";
 import { Bullet } from "./Bullet";
 import type { Level } from "./Level";
+import type { Sound } from "./Sound";
+import { WEAPONS, type WeaponId } from "./weapons";
 
 const WIDTH = 28;
-const HEIGHT = 44;
-const MOVE_SPEED = 230; // px/s
-const JUMP_SPEED = 700; // initial upward px/s (apex ~144px, clears the platforms)
-const GRAVITY = 1700; // px/s^2
-const FIRE_DELAY = 0.14; // seconds between shots while holding fire
-const MAX_HP = 3;
-const HIT_INVULN = 1.2; // seconds of invulnerability after a hit
+const STAND_H = 44;
+const CROUCH_H = 28;
+const MOVE_SPEED = 230;
+const JUMP_SPEED = 700;
+const GRAVITY = 1700;
+const MAX_HP = 5;
+const HIT_INVULN = 1.2;
 
-/** The run-and-gun player: runs, jumps, and shoots in the facing direction. */
+const UP_KEYS = ["ArrowUp", "KeyW"];
+const DOWN_KEYS = ["ArrowDown", "KeyS"];
+const FIRE_KEYS = ["KeyJ", "KeyZ"];
+
+/** The run-and-gun player: runs, jumps, crouches, aims 8 ways and fires weapons. */
 export class Player {
   private x: number;
   private y: number;
@@ -21,8 +27,11 @@ export class Player {
   private vy = 0;
   private facing = 1;
   private onGround = false;
+  private crouching = false;
   private fireCooldown = 0;
   private invuln = 0;
+  private weapon: WeaponId = "pistol";
+  private ammo = 0;
 
   hp = MAX_HP;
 
@@ -34,47 +43,58 @@ export class Player {
   get maxHp(): number {
     return MAX_HP;
   }
-
   get alive(): boolean {
     return this.hp > 0;
   }
-
   get centerX(): number {
     return this.x + WIDTH / 2;
   }
-
+  get center(): Vector2 {
+    return new Vector2(this.x + WIDTH / 2, this.y + STAND_H / 2);
+  }
+  /** Full-height physics box. */
   get bounds(): Rect {
-    return new Rect(this.x, this.y, WIDTH, HEIGHT);
+    return new Rect(this.x, this.y, WIDTH, STAND_H);
+  }
+  /** Damage box — shorter while crouching, so high shots pass overhead. */
+  get hurtBounds(): Rect {
+    if (!this.crouching) return this.bounds;
+    return new Rect(this.x, this.y + (STAND_H - CROUCH_H), WIDTH, CROUCH_H);
+  }
+  get weaponName(): string {
+    return WEAPONS[this.weapon].name;
+  }
+  get weaponAmmo(): number {
+    return this.ammo;
+  }
+  get hasInfiniteAmmo(): boolean {
+    return this.weapon === "pistol";
   }
 
-  update(dt: number, input: Input, level: Level, bullets: Bullet[]): void {
+  update(dt: number, input: Input, level: Level, bullets: Bullet[], audio: Sound): void {
     if (this.invuln > 0) this.invuln -= dt;
 
-    const dir = input.horizontal();
-    this.vx = dir * MOVE_SPEED;
-    if (dir !== 0) this.facing = dir;
+    this.crouching = this.onGround && DOWN_KEYS.some((k) => input.isDown(k));
 
-    const jumpPressed =
-      input.wasPressed("Space") ||
-      input.wasPressed("ArrowUp") ||
-      input.wasPressed("KeyW");
-    if (this.onGround && jumpPressed) {
+    const move = this.crouching ? 0 : input.horizontal();
+    this.vx = move * MOVE_SPEED;
+    if (move !== 0) this.facing = move;
+
+    if (this.onGround && !this.crouching && input.wasPressed("Space")) {
       this.vy = -JUMP_SPEED;
       this.onGround = false;
+      audio.jump();
     }
 
     this.vy += GRAVITY * dt;
 
-    // Move and resolve collisions one axis at a time (a stable platformer trick).
     this.x += this.vx * dt;
     this.resolveHorizontal(level);
-
     this.y += this.vy * dt;
     this.resolveVertical(level);
-
     this.x = clamp(this.x, 0, level.width - WIDTH);
 
-    this.updateShooting(dt, input, bullets);
+    this.updateShooting(dt, input, bullets, audio);
   }
 
   private resolveHorizontal(level: Level): void {
@@ -94,11 +114,9 @@ export class Player {
     for (const solid of level.solids) {
       if (!box.intersects(solid)) continue;
       if (this.vy > 0) {
-        // Falling: land on top of the solid.
-        this.y = solid.y - HEIGHT;
+        this.y = solid.y - STAND_H;
         this.onGround = true;
       } else if (this.vy < 0) {
-        // Rising: bonk the underside.
         this.y = solid.bottom;
       }
       this.vy = 0;
@@ -106,18 +124,70 @@ export class Player {
     }
   }
 
-  private updateShooting(dt: number, input: Input, bullets: Bullet[]): void {
+  /** The 8-way aim direction from held keys, relative to facing. */
+  private aim(input: Input): Vector2 {
+    const up = UP_KEYS.some((k) => input.isDown(k));
+    const down = DOWN_KEYS.some((k) => input.isDown(k));
+    const h = input.horizontal();
+
+    let ax: number;
+    let ay: number;
+    if (up) {
+      ay = -1;
+      ax = h;
+    } else if (down && !this.onGround) {
+      ay = 1;
+      ax = h;
+    } else {
+      ay = 0;
+      ax = this.facing;
+    }
+    if (ax === 0 && ay === 0) ax = this.facing;
+    return new Vector2(ax, ay).normalized();
+  }
+
+  private gunY(): number {
+    return this.y + (this.crouching ? STAND_H - 14 : STAND_H * 0.4);
+  }
+
+  private updateShooting(dt: number, input: Input, bullets: Bullet[], audio: Sound): void {
     this.fireCooldown -= dt;
-    const firing = input.isDown("KeyJ") || input.isDown("KeyZ");
-    if (firing && this.fireCooldown <= 0) {
-      const muzzleX = this.facing > 0 ? this.x + WIDTH + 4 : this.x - 4;
-      const muzzleY = this.y + HEIGHT * 0.4;
-      bullets.push(new Bullet(muzzleX, muzzleY, this.facing));
-      this.fireCooldown = FIRE_DELAY;
+    const firing = FIRE_KEYS.some((k) => input.isDown(k));
+    if (!firing || this.fireCooldown > 0) return;
+
+    const spec = WEAPONS[this.weapon];
+    const aim = this.aim(input);
+    const baseAngle = Math.atan2(aim.y, aim.x);
+    const muzzle = new Vector2(this.centerX + aim.x * 18, this.gunY() + aim.y * 14);
+
+    for (let i = 0; i < spec.pellets; i++) {
+      const spread = spec.spread === 0 ? 0 : (Math.random() - 0.5) * spec.spread;
+      const angle = baseAngle + spread;
+      const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(spec.speed);
+      bullets.push(
+        new Bullet(muzzle, vel, {
+          radius: spec.radius,
+          damage: spec.damage,
+          explosive: spec.explosive,
+          color: spec.color,
+        }),
+      );
+    }
+
+    this.fireCooldown = spec.fireDelay;
+    audio.shoot(this.weapon);
+
+    if (this.weapon !== "pistol") {
+      this.ammo -= 1;
+      if (this.ammo <= 0) this.weapon = "pistol";
     }
   }
 
-  /** Apply a hit unless currently invulnerable. */
+  pickupWeapon(id: WeaponId): void {
+    this.weapon = id;
+    this.ammo = WEAPONS[id].ammo;
+  }
+
   hit(): void {
     if (this.invuln > 0) return;
     this.hp -= 1;
@@ -125,16 +195,17 @@ export class Player {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    // Blink while invulnerable.
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) return;
 
+    const h = this.crouching ? CROUCH_H : STAND_H;
+    const top = this.crouching ? this.y + (STAND_H - CROUCH_H) : this.y;
     ctx.fillStyle = "#4ade80";
-    ctx.fillRect(this.x, this.y, WIDTH, HEIGHT);
+    ctx.fillRect(this.x, top, WIDTH, h);
 
-    // Gun barrel pointing the way we face.
+    // Gun barrel along the aim direction (purely cosmetic facing hint).
     ctx.fillStyle = "#e2e8f0";
-    const gunY = this.y + HEIGHT * 0.4 - 2;
-    if (this.facing > 0) ctx.fillRect(this.x + WIDTH, gunY, 12, 5);
-    else ctx.fillRect(this.x - 12, gunY, 12, 5);
+    const gy = this.gunY();
+    if (this.facing > 0) ctx.fillRect(this.x + WIDTH, gy - 2, 12, 5);
+    else ctx.fillRect(this.x - 12, gy - 2, 12, 5);
   }
 }

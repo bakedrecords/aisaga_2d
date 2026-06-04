@@ -1,30 +1,25 @@
 import { Rect } from "../engine/Rect";
+import type { StageDef, StageTheme } from "./stages";
 
-/**
- * The static world: a wide playfield with a ground strip and a few platforms.
- * `solids` are everything the player, enemies and bullets collide with.
- */
+/** Static geometry for one stage, built from its data definition. */
 export class Level {
-  readonly solids: Rect[];
+  readonly width: number;
   readonly groundY: number;
-  /** X position of the stage-clear goal, near the right edge. */
   readonly goalX: number;
+  readonly solids: Rect[];
+  readonly theme: StageTheme;
+  readonly isBossStage: boolean;
 
-  constructor(
-    readonly width: number,
-    readonly height: number,
-  ) {
-    this.groundY = height - 64;
-    this.goalX = width - 120;
-    this.solids = [
-      // Ground across the whole level.
-      new Rect(0, this.groundY, width, 64),
-      // Platforms to jump between.
-      new Rect(360, this.groundY - 120, 160, 24),
-      new Rect(720, this.groundY - 200, 160, 24),
-      new Rect(1100, this.groundY - 130, 200, 24),
-      new Rect(1600, this.groundY - 220, 180, 24),
-      new Rect(1980, this.groundY - 130, 200, 24),
-    ];
+  constructor(def: StageDef, viewHeight: number) {
+    this.width = def.width;
+    this.groundY = viewHeight - 64;
+    this.goalX = def.width - 120;
+    this.theme = def.theme;
+    this.isBossStage = def.boss ?? false;
+
+    this.solids = [new Rect(0, this.groundY, def.width, 64)];
+    for (const p of def.platforms) {
+      this.solids.push(new Rect(p.x, this.groundY - p.aboveGround, p.w, 24));
+    }
   }
 }
