@@ -1,18 +1,22 @@
 import type { Input } from "../engine/Input";
-import type { Scene } from "../engine/Scene";
+import type { Scene, SceneManager } from "../engine/Scene";
 import type { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
 import { Enemy } from "./Enemy";
 import { Level } from "./Level";
 import { Player } from "./Player";
+import { TitleScene } from "./TitleScene";
 
 const LEVEL_WIDTH = 2400;
 const SPAWN_INTERVAL = 2.5; // seconds between enemy spawns
 const MAX_ENEMIES = 6;
 const BULLET_DAMAGE = 1;
 const KILL_SCORE = 100;
+const CLEAR_BONUS = 500;
 
-/** The main run-and-gun gameplay: player vs. enemies on a scrolling level. */
+type State = "playing" | "won" | "lost";
+
+/** The main run-and-gun gameplay: reach the goal on the right without dying. */
 export class PlayScene implements Scene {
   private level!: Level;
   private camera!: Camera;
@@ -21,7 +25,7 @@ export class PlayScene implements Scene {
   private bullets: Bullet[] = [];
   private spawnTimer = 0;
   private score = 0;
-  private gameOver = false;
+  private state: State = "playing";
 
   constructor(
     private readonly viewWidth: number,
@@ -41,12 +45,16 @@ export class PlayScene implements Scene {
     ];
     this.spawnTimer = SPAWN_INTERVAL;
     this.score = 0;
-    this.gameOver = false;
+    this.state = "playing";
   }
 
-  update(dt: number, input: Input): void {
-    if (this.gameOver) {
-      if (input.wasPressed("KeyR")) this.reset();
+  update(dt: number, input: Input, game: SceneManager): void {
+    if (this.state !== "playing") {
+      if (input.wasPressed("KeyR")) {
+        game.changeScene(new PlayScene(this.viewWidth, this.viewHeight));
+      } else if (input.wasPressed("KeyT")) {
+        game.changeScene(new TitleScene());
+      }
       return;
     }
 
@@ -63,7 +71,12 @@ export class PlayScene implements Scene {
     this.cull();
     this.camera.follow(this.player.centerX);
 
-    if (!this.player.alive) this.gameOver = true;
+    if (!this.player.alive) {
+      this.state = "lost";
+    } else if (this.player.centerX >= this.level.goalX) {
+      this.state = "won";
+      this.score += CLEAR_BONUS;
+    }
   }
 
   private handleCollisions(): void {
@@ -101,10 +114,10 @@ export class PlayScene implements Scene {
     const liveCount = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     if (this.spawnTimer <= 0 && liveCount < MAX_ENEMIES) {
       this.spawnTimer = SPAWN_INTERVAL;
-      // Spawn ahead of the player, but within the level.
+      // Spawn ahead of the player, but never past the goal.
       const spawnX = Math.min(
         this.player.centerX + this.viewWidth,
-        this.level.width - 60,
+        this.level.goalX - 60,
       );
       this.enemies.push(new Enemy(spawnX, this.level.groundY - 42));
     }
@@ -127,13 +140,15 @@ export class PlayScene implements Scene {
     ctx.save();
     ctx.translate(-Math.round(this.camera.x), 0);
     this.drawLevel(ctx);
+    this.drawGoal(ctx);
     for (const enemy of this.enemies) enemy.render(ctx);
     for (const bullet of this.bullets) bullet.render(ctx);
     this.player.render(ctx);
     ctx.restore();
 
     this.drawHud(ctx);
-    if (this.gameOver) this.drawGameOver(ctx);
+    if (this.state === "won") this.drawBanner(ctx, "STAGE CLEAR!", "#4ade80");
+    else if (this.state === "lost") this.drawBanner(ctx, "GAME OVER", "#f87171");
   }
 
   /** Distant hills that scroll slower than the world for a parallax feel. */
@@ -158,6 +173,22 @@ export class PlayScene implements Scene {
     }
   }
 
+  private drawGoal(ctx: CanvasRenderingContext2D): void {
+    const x = this.level.goalX;
+    const top = this.level.groundY - 170;
+
+    ctx.fillStyle = "#cbd5e1"; // pole
+    ctx.fillRect(x, top, 6, 170);
+
+    ctx.fillStyle = this.state === "won" ? "#4ade80" : "#fbbf24"; // flag
+    ctx.beginPath();
+    ctx.moveTo(x + 6, top);
+    ctx.lineTo(x + 48, top + 16);
+    ctx.lineTo(x + 6, top + 32);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   private drawHud(ctx: CanvasRenderingContext2D): void {
     // HP.
     for (let i = 0; i < this.player.maxHp; i++) {
@@ -175,25 +206,41 @@ export class PlayScene implements Scene {
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px system-ui, sans-serif";
     ctx.fillText(
-      "移動 A/D・矢印   ジャンプ Space/W   ショット J（押しっぱなしで連射）",
+      "移動 A/D・矢印   ジャンプ Space/W   ショット J（連射）   → ゴールへ",
       16,
       this.viewHeight - 16,
     );
   }
 
-  private drawGameOver(ctx: CanvasRenderingContext2D): void {
+  private drawBanner(
+    ctx: CanvasRenderingContext2D,
+    title: string,
+    color: string,
+  ): void {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
 
-    ctx.fillStyle = "#f8fafc";
     ctx.textAlign = "center";
-    ctx.font = "48px system-ui, sans-serif";
-    ctx.fillText("GAME OVER", this.viewWidth / 2, this.viewHeight / 2 - 8);
+    ctx.fillStyle = color;
+    ctx.font = "bold 48px system-ui, sans-serif";
+    ctx.fillText(title, this.viewWidth / 2, this.viewHeight / 2 - 8);
+
+    ctx.fillStyle = "#f8fafc";
     ctx.font = "20px system-ui, sans-serif";
     ctx.fillText(
-      `SCORE ${this.score}  —  R でリスタート`,
+      `SCORE ${this.score}`,
       this.viewWidth / 2,
-      this.viewHeight / 2 + 32,
+      this.viewHeight / 2 + 30,
     );
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillText(
+      "R でリトライ    T でタイトル",
+      this.viewWidth / 2,
+      this.viewHeight / 2 + 62,
+    );
+
+    ctx.textAlign = "left";
   }
 }

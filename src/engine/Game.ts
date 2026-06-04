@@ -1,5 +1,5 @@
 import { Input } from "./Input";
-import type { Scene } from "./Scene";
+import type { Scene, SceneManager } from "./Scene";
 
 /** Fixed simulation step in seconds (60 updates per second). */
 const STEP = 1 / 60;
@@ -10,10 +10,11 @@ const MAX_FRAME_TIME = 0.25;
  * Owns the canvas, the input and the main loop. Updates run on a fixed
  * timestep (deterministic physics) while rendering happens once per frame.
  */
-export class Game {
+export class Game implements SceneManager {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly input: Input;
   private scene: Scene;
+  private pendingScene: Scene | null = null;
   private lastTime = 0;
   private accumulator = 0;
   private running = false;
@@ -31,8 +32,17 @@ export class Game {
     this.scene = scene;
   }
 
-  setScene(scene: Scene): void {
-    this.scene = scene;
+  get width(): number {
+    return this.canvas.width;
+  }
+
+  get height(): number {
+    return this.canvas.height;
+  }
+
+  /** Request a scene change; applied after the current update finishes. */
+  changeScene(scene: Scene): void {
+    this.pendingScene = scene;
   }
 
   start(): void {
@@ -55,13 +65,20 @@ export class Game {
 
     let stepped = false;
     while (this.accumulator >= STEP) {
-      this.scene.update(STEP, this.input);
+      this.scene.update(STEP, this.input, this);
       this.accumulator -= STEP;
       stepped = true;
+      // Stop stepping the old scene the moment a transition is requested.
+      if (this.pendingScene) break;
     }
     // Reset edge-triggered input only once an update has consumed it, so quick
     // taps aren't lost on frames that run zero update steps (high refresh rates).
     if (stepped) this.input.endFrame();
+
+    if (this.pendingScene) {
+      this.scene = this.pendingScene;
+      this.pendingScene = null;
+    }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.scene.render(this.ctx);

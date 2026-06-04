@@ -7,7 +7,7 @@ import type { Level } from "./Level";
 const WIDTH = 28;
 const HEIGHT = 44;
 const MOVE_SPEED = 230; // px/s
-const JUMP_SPEED = 580; // initial upward px/s
+const JUMP_SPEED = 700; // initial upward px/s (apex ~144px, clears the platforms)
 const GRAVITY = 1700; // px/s^2
 const FIRE_DELAY = 0.14; // seconds between shots while holding fire
 const MAX_HP = 3;

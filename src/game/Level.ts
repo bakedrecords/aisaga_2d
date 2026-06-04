@@ -7,12 +7,15 @@ import { Rect } from "../engine/Rect";
 export class Level {
   readonly solids: Rect[];
   readonly groundY: number;
+  /** X position of the stage-clear goal, near the right edge. */
+  readonly goalX: number;
 
   constructor(
     readonly width: number,
     readonly height: number,
   ) {
     this.groundY = height - 64;
+    this.goalX = width - 120;
     this.solids = [
       // Ground across the whole level.
       new Rect(0, this.groundY, width, 64),
