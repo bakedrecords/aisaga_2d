@@ -1,32 +1,53 @@
-import { Vector2 } from "./Vector2";
+/** Keys we fully own, so the browser doesn't also scroll the page on them. */
+const HANDLED_KEYS = new Set([
+  "Space",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+]);
 
 /**
- * Tracks which keys are currently held down and exposes convenient queries.
- * Uses `KeyboardEvent.code` so the layout is physical (WASD works on any
- * keyboard layout).
+ * Tracks keyboard state. `isDown` reports held keys; `wasPressed` reports keys
+ * that went down since the last `endFrame()` (edge-triggered, ignores OS
+ * key-repeat). Uses `KeyboardEvent.code` so controls are layout-independent.
  */
 export class Input {
   private readonly held = new Set<string>();
+  private readonly pressed = new Set<string>();
 
   constructor(target: Window = window) {
-    target.addEventListener("keydown", (e) => this.held.add(e.code));
+    target.addEventListener("keydown", (e) => {
+      if (!this.held.has(e.code)) this.pressed.add(e.code);
+      this.held.add(e.code);
+      if (HANDLED_KEYS.has(e.code)) e.preventDefault();
+    });
     target.addEventListener("keyup", (e) => this.held.delete(e.code));
-    // Release everything when focus is lost so keys don't get "stuck".
-    target.addEventListener("blur", () => this.held.clear());
+    // Drop all state when focus is lost so keys don't get "stuck".
+    target.addEventListener("blur", () => {
+      this.held.clear();
+      this.pressed.clear();
+    });
   }
 
   isDown(code: string): boolean {
     return this.held.has(code);
   }
 
-  /** Movement direction from WASD / arrow keys, normalized to length <= 1. */
-  direction(): Vector2 {
-    const x =
+  wasPressed(code: string): boolean {
+    return this.pressed.has(code);
+  }
+
+  /** Horizontal movement axis: -1 (left), 0, or +1 (right). */
+  horizontal(): number {
+    return (
       (this.isDown("ArrowRight") || this.isDown("KeyD") ? 1 : 0) -
-      (this.isDown("ArrowLeft") || this.isDown("KeyA") ? 1 : 0);
-    const y =
-      (this.isDown("ArrowDown") || this.isDown("KeyS") ? 1 : 0) -
-      (this.isDown("ArrowUp") || this.isDown("KeyW") ? 1 : 0);
-    return new Vector2(x, y).normalized();
+      (this.isDown("ArrowLeft") || this.isDown("KeyA") ? 1 : 0)
+    );
+  }
+
+  /** Clears edge-triggered state. Called once per frame after updates run. */
+  endFrame(): void {
+    this.pressed.clear();
   }
 }

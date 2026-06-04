@@ -53,10 +53,15 @@ export class Game {
     this.lastTime = time;
     this.accumulator += frameTime;
 
+    let stepped = false;
     while (this.accumulator >= STEP) {
       this.scene.update(STEP, this.input);
       this.accumulator -= STEP;
+      stepped = true;
     }
+    // Reset edge-triggered input only once an update has consumed it, so quick
+    // taps aren't lost on frames that run zero update steps (high refresh rates).
+    if (stepped) this.input.endFrame();
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.scene.render(this.ctx);
