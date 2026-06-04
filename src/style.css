@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #020617;
+  font-family: system-ui, sans-serif;
+}
+
+#game {
+  border: 1px solid #1e293b;
+  /* Keep pixels crisp if we switch to pixel art later. */
+  image-rendering: pixelated;
+}
