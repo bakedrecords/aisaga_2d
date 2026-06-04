@@ -69,6 +69,17 @@ export abstract class Enemy {
     }
   }
 
+  /** A small floating health bar; drawn by tough enemies when hurt. */
+  protected drawHealthBar(ctx: CanvasRenderingContext2D): void {
+    if (this.hp >= this.maxHp) return;
+    const w = this.w;
+    const y = this.y - 8;
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(this.x, y, w, 4);
+    ctx.fillStyle = "#f87171";
+    ctx.fillRect(this.x, y, w * Math.max(0, this.hp / this.maxHp), 4);
+  }
+
   abstract update(ctx: EnemyContext): void;
   abstract render(ctx: CanvasRenderingContext2D): void;
 }
@@ -176,13 +187,44 @@ export class Flyer extends Enemy {
   }
 }
 
-/** The end-of-game boss: hovers, takes many hits and fires spreads. */
+/** Mid-stage mini-boss: a big, tough, slow bruiser that bodychecks the player. */
+export class Brute extends Enemy {
+  readonly w = 58;
+  readonly h = 64;
+  private static readonly SPEED = 46;
+
+  constructor(x: number, groundY: number) {
+    super(x, groundY - 64, 14, 600);
+  }
+
+  update(ctx: EnemyContext): void {
+    this.faceToward(ctx.playerCenter.x);
+    this.x += this.facing * Brute.SPEED * ctx.dt;
+    this.x = clamp(this.x, 0, ctx.level.width - this.w);
+    this.fallAndLand(ctx);
+  }
+
+  render(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = "#9a3412";
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+    ctx.fillStyle = "#7c2d12";
+    ctx.fillRect(this.x + 8, this.y + 10, this.w - 16, this.h - 24);
+    ctx.fillStyle = "#fca5a5";
+    const eyeX = this.facing > 0 ? this.x + this.w - 20 : this.x + 8;
+    ctx.fillRect(eyeX, this.y + 16, 12, 9);
+    this.drawHealthBar(ctx);
+  }
+}
+
+/** The end-of-game boss: hovers and cycles through several attack patterns. */
 export class Boss extends Enemy {
   readonly w = 120;
   readonly h = 110;
   override readonly isBoss = true;
   private dir = -1;
   private timer = 1.5;
+  private pattern = 0;
+  private windup = false;
   private t = 0;
   private baseY: number;
   private static readonly SPEED = 64;
@@ -192,38 +234,59 @@ export class Boss extends Enemy {
     this.baseY = groundY - 110;
   }
 
+  private get enraged(): boolean {
+    return this.hp <= this.maxHp * 0.4;
+  }
+
   update(ctx: EnemyContext): void {
     this.t += ctx.dt;
-    this.x += this.dir * Boss.SPEED * ctx.dt;
+    const speed = this.enraged ? Boss.SPEED * 1.4 : Boss.SPEED;
+    this.x += this.dir * speed * ctx.dt;
     if (this.x < ctx.level.width - 540) this.dir = 1;
     if (this.x > ctx.level.width - 200) this.dir = -1;
     this.y = this.baseY + Math.sin(this.t * 1.5) * 22;
     this.faceToward(ctx.playerCenter.x);
 
     this.timer -= ctx.dt;
+    this.windup = this.timer < 0.3;
     if (this.timer <= 0) {
-      this.timer = 1.7;
-      const dir = ctx.playerCenter.add(this.center.scale(-1)).normalized();
-      const baseAngle = Math.atan2(dir.y, dir.x);
-      for (let i = -2; i <= 2; i++) {
-        const a = baseAngle + i * 0.17;
-        ctx.fire(
-          new Bullet(this.center, new Vector2(Math.cos(a), Math.sin(a)).scale(300), {
-            color: "#fb7185",
-            radius: 6,
-          }),
-        );
-      }
+      this.timer = this.enraged ? 1 : 1.7;
+      this.firePattern(ctx);
+      this.pattern = (this.pattern + 1) % 3;
       ctx.audio.enemyShoot();
     }
   }
 
+  private firePattern(ctx: EnemyContext): void {
+    const toPlayer = ctx.playerCenter.add(this.center.scale(-1)).normalized();
+    const aim = Math.atan2(toPlayer.y, toPlayer.x);
+    const shoot = (angle: number, speed: number) =>
+      ctx.fire(
+        new Bullet(this.center, new Vector2(Math.cos(angle), Math.sin(angle)).scale(speed), {
+          color: "#fb7185",
+          radius: 6,
+        }),
+      );
+
+    if (this.pattern === 0) {
+      // Aimed fan.
+      for (let i = -2; i <= 2; i++) shoot(aim + i * 0.17, 300);
+    } else if (this.pattern === 1) {
+      // Radial burst (denser when enraged).
+      const n = this.enraged ? 16 : 12;
+      for (let i = 0; i < n; i++) shoot((i / n) * Math.PI * 2, 230);
+    } else {
+      // Fast aimed triple.
+      for (let i = -1; i <= 1; i++) shoot(aim + i * 0.06, 380);
+    }
+  }
+
   render(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = "#7f1d1d";
+    ctx.fillStyle = this.windup ? "#b91c1c" : "#7f1d1d";
     ctx.fillRect(this.x, this.y, this.w, this.h);
-    ctx.fillStyle = "#b91c1c";
+    ctx.fillStyle = this.enraged ? "#ef4444" : "#b91c1c";
     ctx.fillRect(this.x + 12, this.y + 12, this.w - 24, this.h - 36);
-    ctx.fillStyle = "#fca5a5"; // eye
+    ctx.fillStyle = this.windup ? "#fef08a" : "#fca5a5";
     const eyeX = this.facing > 0 ? this.x + this.w - 34 : this.x + 14;
     ctx.fillRect(eyeX, this.y + 28, 20, 14);
   }

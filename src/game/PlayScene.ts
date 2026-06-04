@@ -1,21 +1,21 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
-import type { Vector2 } from "../engine/Vector2";
+import { clamp, type Vector2 } from "../engine/Vector2";
 import type { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
-import { Boss, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
+import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
 import { Level } from "./Level";
 import { Particles } from "./Particles";
-import { Pickup } from "./Pickup";
+import { Pickup, type PickupConfig } from "./Pickup";
 import { Player } from "./Player";
 import { sound } from "./Sound";
-import { type EnemyKind, type StageDef, STAGES } from "./stages";
+import { type EnemyKind, type PickupDef, type StageDef, STAGES } from "./stages";
 import { TitleScene } from "./TitleScene";
 import { PICKUP_WEAPONS } from "./weapons";
 
 const CLEAR_BONUS = 500;
 const ROCKET_RADIUS = 92;
-const DROP_CHANCE = 0.18;
+const DEFAULT_LIVES = 3;
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -33,6 +33,7 @@ export class PlayScene implements Scene {
   private particles = new Particles();
   private spawnTimer = 0;
   private score = 0;
+  private lives = DEFAULT_LIVES;
   private state: State = "playing";
 
   constructor(
@@ -40,6 +41,7 @@ export class PlayScene implements Scene {
     private readonly viewHeight: number,
     private readonly stageIndex: number,
     private readonly startScore: number,
+    private readonly startLives = DEFAULT_LIVES,
   ) {
     this.stageDef = STAGES[Math.min(stageIndex, STAGES.length - 1)];
     this.reset();
@@ -55,7 +57,7 @@ export class PlayScene implements Scene {
     this.player = new Player(120, this.level.groundY - 44);
     this.enemies = this.stageDef.enemies.map((e) => this.createEnemy(e.type, e.x));
     this.pickups = this.stageDef.pickups.map(
-      (p) => new Pickup(p.x, this.level.groundY, p.weapon),
+      (p) => new Pickup(p.x, this.level.groundY, toPickupConfig(p)),
     );
     this.boss = this.level.isBossStage
       ? new Boss(this.level.width - 320, this.level.groundY)
@@ -65,6 +67,7 @@ export class PlayScene implements Scene {
     this.particles = new Particles();
     this.spawnTimer = this.stageDef.spawnInterval;
     this.score = this.startScore;
+    this.lives = this.startLives;
     this.state = "playing";
     sound.setBgm(true);
   }
@@ -73,6 +76,7 @@ export class PlayScene implements Scene {
     const g = this.level.groundY;
     if (kind === "shooter") return new Shooter(x, g);
     if (kind === "flyer") return new Flyer(x, g);
+    if (kind === "brute") return new Brute(x, g);
     return new Walker(x, g);
   }
 
@@ -107,6 +111,7 @@ export class PlayScene implements Scene {
     this.handlePlayerBullets();
     this.handleEnemyBullets();
     this.handleContact();
+    this.handleSpikes();
     this.handlePickups();
     this.spawnEnemies(dt);
     this.cull();
@@ -121,16 +126,19 @@ export class PlayScene implements Scene {
     if (this.state === "won") {
       if (["Space", "Enter", "KeyJ"].some((k) => input.wasPressed(k))) {
         game.changeScene(
-          new PlayScene(this.viewWidth, this.viewHeight, this.stageIndex + 1, this.score),
+          new PlayScene(
+            this.viewWidth, this.viewHeight, this.stageIndex + 1, this.score, this.lives,
+          ),
         );
       }
       return;
     }
-    // "lost" or "complete": R retries, T goes to the title.
     if (input.wasPressed("KeyR")) {
       const index = this.state === "complete" ? 0 : this.stageIndex;
       const score = this.state === "complete" ? 0 : this.startScore;
-      game.changeScene(new PlayScene(this.viewWidth, this.viewHeight, index, score));
+      game.changeScene(
+        new PlayScene(this.viewWidth, this.viewHeight, index, score, DEFAULT_LIVES),
+      );
     } else if (input.wasPressed("KeyT")) {
       game.changeScene(new TitleScene());
     }
@@ -193,10 +201,8 @@ export class PlayScene implements Scene {
     this.particles.burst(e.center, "#f87171", 16, 320, { life: 0.5, size: 4 });
     sound.explosion();
     this.camera.shake(6);
-    if (Math.random() < DROP_CHANCE) {
-      const w = PICKUP_WEAPONS[Math.floor(Math.random() * PICKUP_WEAPONS.length)] ?? "machinegun";
-      this.pickups.push(new Pickup(e.center.x - 14, this.level.groundY, w));
-    }
+    const drop = rollDrop();
+    if (drop) this.pickups.push(new Pickup(e.center.x - 14, this.level.groundY, drop));
   }
 
   private handleEnemyBullets(): void {
@@ -223,6 +229,13 @@ export class PlayScene implements Scene {
     }
   }
 
+  private handleSpikes(): void {
+    const hurt = this.player.hurtBounds;
+    for (const s of this.level.spikes) {
+      if (hurt.intersects(s)) this.hitPlayer();
+    }
+  }
+
   private hitPlayer(): void {
     const before = this.player.hp;
     this.player.hit();
@@ -236,11 +249,13 @@ export class PlayScene implements Scene {
   private handlePickups(): void {
     const box = this.player.bounds;
     for (const p of this.pickups) {
-      if (p.alive && box.intersects(p.bounds)) {
-        this.player.pickupWeapon(p.weapon);
-        sound.pickup();
-        p.alive = false;
-      }
+      if (!p.alive || !box.intersects(p.bounds)) continue;
+      const c = p.config;
+      if (c.kind === "weapon") this.player.pickupWeapon(c.weapon);
+      else if (c.kind === "health") this.player.heal(2);
+      else this.score += c.value;
+      sound.pickup();
+      p.alive = false;
     }
   }
 
@@ -270,9 +285,22 @@ export class PlayScene implements Scene {
 
   private checkWinLose(): void {
     if (!this.player.alive) {
-      this.state = "lost";
-      sound.gameover();
-      sound.setBgm(false);
+      this.particles.burst(this.player.center, "#fca5a5", 26, 340, { life: 0.6, size: 4 });
+      this.camera.shake(16);
+      if (this.lives > 1) {
+        this.lives -= 1;
+        sound.explosion();
+        this.enemyBullets = [];
+        this.player.respawn(
+          clamp(this.player.centerX - 40, 60, this.level.width - 80),
+          this.level.groundY - 44,
+        );
+      } else {
+        this.lives = 0;
+        this.state = "lost";
+        sound.gameover();
+        sound.setBgm(false);
+      }
       return;
     }
     const cleared = this.level.isBossStage
@@ -289,14 +317,14 @@ export class PlayScene implements Scene {
   // ---- rendering ---------------------------------------------------------
 
   render(ctx: CanvasRenderingContext2D): void {
-    const theme = this.level.theme;
-    ctx.fillStyle = theme.sky;
+    ctx.fillStyle = this.level.theme.sky;
     ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
     this.drawParallax(ctx);
 
     ctx.save();
     ctx.translate(-Math.round(this.camera.x) + this.camera.shakeX, this.camera.shakeY);
     this.drawLevel(ctx);
+    this.drawSpikes(ctx);
     if (!this.level.isBossStage) this.drawGoal(ctx);
     for (const p of this.pickups) p.render(ctx);
     for (const e of this.enemies) e.render(ctx);
@@ -313,13 +341,24 @@ export class PlayScene implements Scene {
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = this.level.theme.hill;
-    const spacing = 480;
-    const offset = (this.camera.x * 0.4) % spacing;
+    this.parallaxLayer(ctx, this.level.theme.far, 0.2, 300, 560, 80);
+    this.parallaxLayer(ctx, this.level.theme.hill, 0.4, 240, 480, 30);
+  }
+
+  private parallaxLayer(
+    ctx: CanvasRenderingContext2D,
+    color: string,
+    factor: number,
+    radius: number,
+    spacing: number,
+    yOffset: number,
+  ): void {
+    ctx.fillStyle = color;
+    const offset = (this.camera.x * factor) % spacing;
     for (let i = -1; i * spacing - offset < this.viewWidth + spacing; i++) {
       const cx = i * spacing - offset + spacing / 2;
       ctx.beginPath();
-      ctx.arc(cx, this.level.groundY + 30, 240, Math.PI, 0);
+      ctx.arc(cx, this.level.groundY + yOffset, radius, Math.PI, 0);
       ctx.fill();
     }
   }
@@ -330,6 +369,23 @@ export class PlayScene implements Scene {
       ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
       ctx.fillStyle = this.level.theme.edge;
       ctx.fillRect(solid.x, solid.y, solid.w, 6);
+    }
+  }
+
+  private drawSpikes(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = "#cbd5e1";
+    for (const s of this.level.spikes) {
+      const teeth = Math.max(1, Math.floor(s.w / 14));
+      const tw = s.w / teeth;
+      for (let i = 0; i < teeth; i++) {
+        const x = s.x + i * tw;
+        ctx.beginPath();
+        ctx.moveTo(x, s.bottom);
+        ctx.lineTo(x + tw / 2, s.y);
+        ctx.lineTo(x + tw, s.bottom);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   }
 
@@ -348,31 +404,31 @@ export class PlayScene implements Scene {
   }
 
   private drawHud(ctx: CanvasRenderingContext2D): void {
-    // HP.
     for (let i = 0; i < this.player.maxHp; i++) {
       ctx.fillStyle = i < this.player.hp ? "#ef4444" : "#475569";
       ctx.fillRect(16 + i * 24, 16, 18, 18);
     }
 
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "16px system-ui, sans-serif";
+    ctx.fillText(`× ${this.lives}`, 16 + this.player.maxHp * 24 + 6, 31);
+
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "20px system-ui, sans-serif";
-    ctx.textAlign = "left";
     ctx.fillText(`SCORE ${this.score}`, 16, 60);
 
-    // Stage name.
     ctx.textAlign = "center";
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "16px system-ui, sans-serif";
     ctx.fillText(this.stageDef.name, this.viewWidth / 2, 28);
 
-    // Weapon + ammo.
     ctx.textAlign = "right";
     ctx.fillStyle = "#fde047";
     ctx.font = "18px system-ui, sans-serif";
     const ammo = this.player.hasInfiniteAmmo ? "∞" : String(this.player.weaponAmmo);
     ctx.fillText(`${this.player.weaponName}  ${ammo}`, this.viewWidth - 16, 28);
 
-    // Controls.
     ctx.textAlign = "left";
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px system-ui, sans-serif";
@@ -434,4 +490,21 @@ export class PlayScene implements Scene {
     ctx.fillText(sub, this.viewWidth / 2, this.viewHeight / 2 + 62);
     ctx.textAlign = "left";
   }
+}
+
+function toPickupConfig(def: PickupDef): PickupConfig {
+  if (def.kind === "weapon") return { kind: "weapon", weapon: def.weapon };
+  if (def.kind === "health") return { kind: "health" };
+  return { kind: "score", value: def.value };
+}
+
+function rollDrop(): PickupConfig | null {
+  const r = Math.random();
+  if (r < 0.12) {
+    const w = PICKUP_WEAPONS[Math.floor(Math.random() * PICKUP_WEAPONS.length)] ?? "machinegun";
+    return { kind: "weapon", weapon: w };
+  }
+  if (r < 0.2) return { kind: "health" };
+  if (r < 0.3) return { kind: "score", value: 200 };
+  return null;
 }

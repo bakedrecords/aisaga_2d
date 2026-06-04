@@ -14,6 +14,7 @@ const JUMP_SPEED = 700;
 const GRAVITY = 1700;
 const MAX_HP = 5;
 const HIT_INVULN = 1.2;
+const RESPAWN_INVULN = 2;
 
 const UP_KEYS = ["ArrowUp", "KeyW"];
 const DOWN_KEYS = ["ArrowDown", "KeyS"];
@@ -192,6 +193,23 @@ export class Player {
     if (this.invuln > 0) return;
     this.hp -= 1;
     this.invuln = HIT_INVULN;
+  }
+
+  heal(amount: number): void {
+    this.hp = Math.min(MAX_HP, this.hp + amount);
+  }
+
+  /** Revive after losing a life: full HP, brief invulnerability, back to pistol. */
+  respawn(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.hp = MAX_HP;
+    this.invuln = RESPAWN_INVULN;
+    this.crouching = false;
+    this.weapon = "pistol";
+    this.ammo = 0;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
