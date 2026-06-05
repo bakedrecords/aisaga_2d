@@ -16,8 +16,8 @@ const MAX_HP = 5;
 const HIT_INVULN = 1.2;
 const RESPAWN_INVULN = 2;
 const MAX_BOMBS = 3;
-const DASH_SPEED = 560;
-const DASH_TIME = 0.3;
+const DASH_SPEED = 840;
+const DASH_TIME = 0.6;
 const SLASH_TIME = 0.12;
 
 const UP_KEYS = ["ArrowUp", "KeyW"];
@@ -28,7 +28,7 @@ const FIRE_KEYS = ["KeyJ", "KeyZ"];
 export interface MeleeHit {
   x: number;
   y: number;
-  facing: number;
+  angle: number; // centre direction of the arc
   range: number;
   arc: number;
   damage: number;
@@ -47,7 +47,9 @@ export class Player {
   private invuln = 0;
   private jumpsUsed = 0;
   private slashTimer = 0;
+  private slashAngle = 0;
   private dashTimer = 0;
+  private airJumpFx = false;
   private pendingMelee: MeleeHit | null = null;
   private special = false; // using the pickup weapon instead of the main attack
   private ammo = 0;
@@ -111,6 +113,7 @@ export class Player {
 
     if (this.onGround) this.jumpsUsed = 0;
     if (!this.crouching && input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
+      if (!this.onGround) this.airJumpFx = true; // a mid-air (double) jump
       this.vy = -JUMP_SPEED;
       this.onGround = false;
       this.jumpsUsed += 1;
@@ -194,14 +197,17 @@ export class Player {
     const spec = this.special ? this.character.special : this.character.normal;
 
     if (spec.melee) {
+      const aim = this.aim(input);
+      const angle = Math.atan2(aim.y, aim.x);
       this.pendingMelee = {
         x: this.centerX,
         y: this.y + STAND_H / 2,
-        facing: this.facing,
+        angle,
         range: spec.melee.range,
         arc: spec.melee.arc,
         damage: spec.damage,
       };
+      this.slashAngle = angle;
       this.slashTimer = SLASH_TIME;
     } else if (spec.extraUp) {
       // Fire forward (facing) and straight up at the same time.
@@ -282,6 +288,13 @@ export class Player {
     return this.dashTimer > 0;
   }
 
+  /** True once after a mid-air (double) jump, for a visual cue. */
+  takeAirJump(): boolean {
+    const a = this.airJumpFx;
+    this.airJumpFx = false;
+    return a;
+  }
+
   heal(amount: number): void {
     this.hp = Math.min(MAX_HP, this.hp + amount);
   }
@@ -307,6 +320,7 @@ export class Player {
     this.jumpsUsed = 0;
     this.slashTimer = 0;
     this.dashTimer = 0;
+    this.airJumpFx = false;
     this.pendingMelee = null;
     this.special = false;
     this.ammo = 0;
@@ -327,19 +341,17 @@ export class Player {
     else ctx.fillRect(this.x - 12, gy - 2, 12, 5);
 
     if (this.slashTimer > 0 && this.character.normal.melee) {
-      this.drawSlash(ctx, this.character.normal.melee.range);
+      this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
     }
   }
 
-  private drawSlash(ctx: CanvasRenderingContext2D, range: number): void {
+  private drawSlash(ctx: CanvasRenderingContext2D, range: number, arc: number): void {
     const cx = this.centerX;
     const cy = this.y + STAND_H / 2;
-    const start = this.facing > 0 ? -Math.PI / 4 : (Math.PI * 3) / 4;
-    const end = this.facing > 0 ? Math.PI / 4 : (Math.PI * 5) / 4;
     ctx.fillStyle = "rgba(241, 245, 249, 0.45)";
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, range, start, end);
+    ctx.arc(cx, cy, range, this.slashAngle - arc / 2, this.slashAngle + arc / 2);
     ctx.closePath();
     ctx.fill();
   }

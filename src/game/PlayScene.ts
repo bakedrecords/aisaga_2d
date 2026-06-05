@@ -119,6 +119,11 @@ export class PlayScene implements Scene {
 
     sound.update();
     this.player.update(dt, input, this.level, this.playerBullets, sound);
+    if (this.player.takeAirJump()) {
+      this.particles.burst(this.player.center, "#e2e8f0", 8, 150, {
+        life: 0.3, size: 3, gravity: 0,
+      });
+    }
 
     if (input.wasPressed("KeyK") && this.player.consumeBomb()) {
       const bomb = this.player.bomb;
@@ -126,7 +131,7 @@ export class PlayScene implements Scene {
         this.detonateBomb();
       } else if (bomb.kind === "shotgun") {
         this.player.fireBombShotgun(this.playerBullets, bomb.shot);
-        sound.shoot("dark");
+        sound.shoot(bomb.shot.style ?? "gun");
         this.camera.shake(8);
       } else if (bomb.kind === "heal") {
         this.player.heal(bomb.amount);
@@ -279,8 +284,9 @@ export class PlayScene implements Scene {
       const dx = ec.x - m.x;
       const dy = ec.y - m.y;
       if (Math.hypot(dx, dy) > m.range) continue;
-      const forward = dx * m.facing;
-      if (forward <= 0 || Math.atan2(Math.abs(dy), forward) > half) continue;
+      const ang = Math.atan2(dy, dx);
+      const diff = Math.abs(Math.atan2(Math.sin(ang - m.angle), Math.cos(ang - m.angle)));
+      if (diff > half) continue;
       this.hurtEnemy(e, m.damage);
       this.particles.burst(ec, "#f1f5f9", 8, 200, { life: 0.25, size: 3 });
       hit = true;

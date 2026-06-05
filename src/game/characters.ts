@@ -72,11 +72,12 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       name: "LASER", fireDelay: 0.5, pellets: 1, spread: 0, speed: 1150,
       damage: 2, radius: 6, color: "#0b1020", range: 760, ammo: 8, pierce: true, style: "laser",
     },
+    // A forward fan of piercing lasers.
     bomb: {
       kind: "shotgun",
       shot: {
-        name: "DARK SHOT", fireDelay: 0, pellets: 3, spread: 0.16, speed: 780,
-        damage: 4, radius: 6, color: "#0b1020", range: 820, ammo: 0, style: "dark",
+        name: "LASER FAN", fireDelay: 0, pellets: 5, spread: 0.34, speed: 1120,
+        damage: 2, radius: 6, color: "#0b1020", range: 780, ammo: 0, pierce: true, style: "laser",
       },
     },
   },
@@ -113,7 +114,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     // The machine gun, revived for this character.
     special: {
       name: "M.GUN", fireDelay: 0.07, pellets: 1, spread: 0.08, speed: 780,
-      damage: 1, radius: 3, color: "#67e8f9", range: 540, ammo: 140,
+      damage: 1, radius: 3, color: "#67e8f9", range: 540, ammo: 40,
     },
     bomb: { kind: "timestop", duration: 3 },
   },
@@ -123,11 +124,11 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     attribute: "物理",
     bodyColor: "#cbd5e1",
     accent: "#94a3b8",
-    // Close-range katana: a 90° forward arc at double normal damage.
+    // Close-range katana: a 90° arc (aimable up) that one-shots weak enemies.
     normal: {
       name: "KATANA", fireDelay: 0.3, pellets: 0, spread: 0, speed: 0,
-      damage: 2, radius: 0, color: "#e2e8f0", range: 0, ammo: 0,
-      melee: { arc: Math.PI / 2, range: 66 },
+      damage: 3, radius: 0, color: "#e2e8f0", range: 132, ammo: 0,
+      melee: { arc: Math.PI / 2, range: 132 },
     },
     // Shuriken: a ranged shot as strong as A's normal attack.
     special: {
