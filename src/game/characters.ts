@@ -130,10 +130,10 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 3, radius: 0, color: "#e2e8f0", range: 132, ammo: 0,
       melee: { arc: Math.PI / 2, range: 132 },
     },
-    // Shuriken: a ranged shot as strong as A's normal attack.
+    // Shuriken: a strong ranged shot (double A's normal), limited ammo.
     special: {
       name: "SHURIKEN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
-      damage: 1, radius: 4, color: "#e2e8f0", range: 440, ammo: 24,
+      damage: 2, radius: 4, color: "#e2e8f0", range: 440, ammo: 12,
     },
     bomb: { kind: "dash", damage: 10 },
   },

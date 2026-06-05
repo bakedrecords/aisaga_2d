@@ -99,6 +99,11 @@ body.touch .tc-dpad::before {
   font-size: 26px;
 }
 
+/* Higher specificity than the d-pad base, so a pressed wedge lights up. */
+.tc-dpad .tc-btn.tc-active {
+  background: rgba(74, 222, 128, 0.5);
+}
+
 .tc-up {
   clip-path: polygon(50% 50%, 0 0, 100% 0);
   place-items: start center;

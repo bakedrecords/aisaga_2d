@@ -19,15 +19,21 @@ const ABILITIES: Record<CharacterId, string[]> = {
 /** The opening screen: pick a character, then start. */
 export class TitleScene implements Scene {
   private index = 0;
+  private navCooldown = 0;
 
   constructor() {
     sound.setBgm(false);
   }
 
-  update(_dt: number, input: Input, game: SceneManager): void {
+  update(dt: number, input: Input, game: SceneManager): void {
     const n = CHARACTER_ORDER.length;
-    if (NEXT_KEYS.some((k) => input.wasPressed(k))) this.index = (this.index + 1) % n;
-    if (PREV_KEYS.some((k) => input.wasPressed(k))) this.index = (this.index + n - 1) % n;
+    if (this.navCooldown > 0) this.navCooldown -= dt;
+    const right = NEXT_KEYS.some((k) => input.wasPressed(k));
+    const left = PREV_KEYS.some((k) => input.wasPressed(k));
+    if (this.navCooldown <= 0 && right !== left) {
+      this.index = right ? (this.index + 1) % n : (this.index + n - 1) % n;
+      this.navCooldown = 0.16;
+    }
     if (START_KEYS.some((k) => input.wasPressed(k))) {
       const id = CHARACTER_ORDER[this.index];
       game.changeScene(new PlayScene(game.width, game.height, 0, 0, DEFAULT_LIVES, id));
