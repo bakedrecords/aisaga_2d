@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext.jsx'
 import { calcFilling, yen } from '../lib/calc.js'
 import { baseUnitLabel } from '../lib/units.js'
 import NumInput from '../components/NumInput.jsx'
+import RefSelect from '../components/RefSelect.jsx'
 
 export default function Fillings() {
   const {
@@ -78,20 +79,15 @@ export default function Fillings() {
                     return (
                       <tr key={it.id}>
                         <td data-label="材料">
-                          <select
+                          <RefSelect
                             aria-label="材料"
                             value={it.ingredientId}
-                            onChange={(e) =>
-                              updateFillingItem(filling.id, it.id, { ingredientId: e.target.value })
+                            options={ingredients}
+                            placeholder="（材料を選択）"
+                            onChange={(v) =>
+                              updateFillingItem(filling.id, it.id, { ingredientId: v })
                             }
-                          >
-                            <option value="">（材料を選択）</option>
-                            {ingredients.map((i) => (
-                              <option key={i.id} value={i.id}>
-                                {i.name || '(無名)'}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </td>
                         <td className="num" data-label="使用量">
                           <span className="with-suffix">

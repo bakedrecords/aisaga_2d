@@ -3,6 +3,7 @@ export const STORAGE_KEY = 'bakery-cost:v1'
 
 /** 起動時の読み込み。無ければ null（呼び出し側で seed 初期化）。 */
 export function load() {
+  if (typeof localStorage === 'undefined') return null
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
@@ -20,6 +21,7 @@ export function load() {
  * QuotaExceededError（容量超過）は UI に通知する（§6.6）。
  */
 export function save(data) {
+  if (typeof localStorage === 'undefined') return { ok: true }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     return { ok: true }
@@ -31,6 +33,7 @@ export function save(data) {
 
 /** localStorage のデータを削除（データ初期化, §7.0.1）。 */
 export function clearStorage() {
+  if (typeof localStorage === 'undefined') return
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch (e) {

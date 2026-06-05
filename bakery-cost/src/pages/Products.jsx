@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext.jsx'
 import { calcDough, calcFilling, calcProduct, yen } from '../lib/calc.js'
 import { baseUnitLabel } from '../lib/units.js'
 import NumInput from '../components/NumInput.jsx'
+import RefSelect from '../components/RefSelect.jsx'
 
 // 原価率の色分け（〜30%緑 / 〜40%橙 / 40%超 赤）。売値未設定(0)は中立。
 export function rateClass(rate) {
@@ -131,20 +132,22 @@ export default function Products() {
                           </select>
                         </td>
                         <td data-label="対象">
-                          <select
+                          <RefSelect
                             aria-label="対象"
                             value={comp.refId}
-                            onChange={(e) =>
-                              updateProductComponent(product.id, comp.id, { refId: e.target.value })
+                            options={optionsFor(comp.type)}
+                            placeholder="（選択）"
+                            unknownLabel={
+                              comp.type === 'dough'
+                                ? '(不明な生地)'
+                                : comp.type === 'filling'
+                                  ? '(不明なフィリング)'
+                                  : '(不明な材料)'
                             }
-                          >
-                            <option value="">（選択）</option>
-                            {optionsFor(comp.type).map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.name || '(無名)'}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(v) =>
+                              updateProductComponent(product.id, comp.id, { refId: v })
+                            }
+                          />
                         </td>
                         <td className="num" data-label="使用量">
                           <span className="with-suffix">

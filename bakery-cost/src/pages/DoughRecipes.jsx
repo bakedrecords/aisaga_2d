@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useData } from '../context/DataContext.jsx'
 import { calcDough, yen } from '../lib/calc.js'
 import NumInput from '../components/NumInput.jsx'
+import RefSelect from '../components/RefSelect.jsx'
 
 export default function DoughRecipes() {
   const {
@@ -79,20 +80,15 @@ export default function DoughRecipes() {
                     return (
                       <tr key={it.id}>
                         <td data-label="材料">
-                          <select
+                          <RefSelect
                             aria-label="材料"
                             value={it.ingredientId}
-                            onChange={(e) =>
-                              updateDoughItem(dough.id, it.id, { ingredientId: e.target.value })
+                            options={ingredients}
+                            placeholder="（材料を選択）"
+                            onChange={(v) =>
+                              updateDoughItem(dough.id, it.id, { ingredientId: v })
                             }
-                          >
-                            <option value="">（材料を選択）</option>
-                            {ingredients.map((i) => (
-                              <option key={i.id} value={i.id}>
-                                {i.name || '(無名)'}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </td>
                         <td className="num" data-label="ベーカーズ%">
                           <NumInput

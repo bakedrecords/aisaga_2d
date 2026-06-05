@@ -27,9 +27,11 @@ Node 18 以上。依存は `react` / `react-dom` のみ（dev に `vite` / `@vit
 src/
 ├── main.jsx              エントリポイント
 ├── App.jsx               レイアウト＋タブ＋データ管理UI
+├── App.smoke.test.jsx    各画面が描画できることのスモークテスト
 ├── index.css             全スタイル（CSS変数でテーマ管理）
 ├── components/
-│   └── NumInput.jsx      数値入力（小数入力に対応した小さな部品）
+│   ├── NumInput.jsx      数値入力（小数入力に対応した小さな部品）
+│   └── RefSelect.jsx     参照select（削除済み参照は「(不明な材料)」表示）
 ├── lib/
 │   ├── calc.js           原価計算（純粋関数, テスト対象）
 │   ├── calc.test.js

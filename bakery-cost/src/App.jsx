@@ -89,7 +89,7 @@ export default function App() {
             サンプルに戻す
           </button>
           <button className="ghost danger" onClick={onClearAll} title="すべてのデータを削除する">
-            初期化
+            データ初期化
           </button>
           <input
             ref={fileRef}
