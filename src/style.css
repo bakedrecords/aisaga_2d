@@ -67,8 +67,8 @@ body.touch .tc-dpad {
   left: calc(16px + env(safe-area-inset-left));
   bottom: calc(16px + env(safe-area-inset-bottom));
   display: block;
-  width: 180px;
-  height: 180px;
+  width: 216px;
+  height: 216px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.35);
   overflow: hidden;
@@ -95,8 +95,8 @@ body.touch .tc-dpad::before {
   border-radius: 0;
   background: rgba(148, 163, 184, 0.22);
   display: grid;
-  padding: 12px;
-  font-size: 22px;
+  padding: 14px;
+  font-size: 26px;
 }
 
 .tc-up {

@@ -116,6 +116,10 @@ export class PlayScene implements Scene {
       this.updateEndState(input, game);
       return;
     }
+    if (input.wasPressed("KeyT")) {
+      game.changeScene(new TitleScene());
+      return;
+    }
 
     sound.update();
     this.player.update(dt, input, this.level, this.playerBullets, sound);

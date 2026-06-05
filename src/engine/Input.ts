@@ -38,9 +38,11 @@ export class Input {
     return this.pressed.has(code);
   }
 
-  /** Inject a key press from on-screen/touch controls (mirrors a keydown). */
-  pressKey(code: string): void {
-    if (!this.held.has(code)) this.pressed.add(code);
+  /** Inject a key press from on-screen/touch controls (mirrors a keydown).
+   *  `force` always registers an edge — used by touch buttons so a missed
+   *  release (stuck `held`) can't swallow the next tap. */
+  pressKey(code: string, force = false): void {
+    if (force || !this.held.has(code)) this.pressed.add(code);
     this.held.add(code);
   }
 

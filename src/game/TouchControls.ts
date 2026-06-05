@@ -57,7 +57,7 @@ export class TouchControls {
     // long-press text selection / callout that could swallow inputs.
     const press = (e: Event) => {
       e.preventDefault();
-      this.input.pressKey(def.code);
+      this.input.pressKey(def.code, true);
       el.classList.add("tc-active");
     };
     const release = (e: Event) => {
