@@ -120,10 +120,16 @@ export class PlayScene implements Scene {
       const bomb = this.player.bomb;
       if (bomb.kind === "blast") {
         this.detonateBomb();
-      } else {
+      } else if (bomb.kind === "shotgun") {
         this.player.fireBombShotgun(this.playerBullets, bomb.shot);
         sound.shoot("dark");
         this.camera.shake(8);
+      } else {
+        this.player.heal(bomb.amount);
+        this.particles.burst(this.player.center, "#86efac", 24, 220, {
+          life: 0.6, size: 4, gravity: -60,
+        });
+        sound.pickup();
       }
     }
 

@@ -1,7 +1,7 @@
 import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
 
-export type BulletStyle = "flame" | "laser" | "dark";
+export type BulletStyle = "flame" | "laser" | "dark" | "light";
 
 export interface BulletOptions {
   radius?: number;
@@ -72,6 +72,11 @@ export class Bullet {
     if (this.style === "dark") {
       this.disc(ctx, "#a78bfa", this.radius + 2);
       this.disc(ctx, "#0b1020", this.radius);
+      return;
+    }
+    if (this.style === "light") {
+      this.disc(ctx, "#fde68a", this.radius + 2);
+      this.disc(ctx, "#ffffff", this.radius);
       return;
     }
     if (this.style === "laser") {

@@ -1,6 +1,6 @@
 import type { BulletStyle } from "./Bullet";
 
-export type CharacterId = "A" | "B";
+export type CharacterId = "A" | "B" | "C";
 
 /** Stats for a single gun weapon (the main attack or a pickup special). */
 export interface WeaponSpec {
@@ -16,12 +16,14 @@ export interface WeaponSpec {
   ammo: number; // 0 = infinite (the main attack)
   pierce?: boolean;
   style?: BulletStyle;
+  extraUp?: boolean; // also fire one shot straight up (twin attack)
 }
 
 /** The bomb ability differs per character. */
 export type Bomb =
   | { kind: "blast" } // strong blast centered on the player
-  | { kind: "shotgun"; shot: WeaponSpec }; // long-range forward shots
+  | { kind: "shotgun"; shot: WeaponSpec } // long-range forward shots
+  | { kind: "heal"; amount: number }; // restore HP instead of attacking
 
 export interface Character {
   id: CharacterId;
@@ -32,6 +34,7 @@ export interface Character {
   normal: WeaponSpec; // main attack (button J), infinite
   special: WeaponSpec; // pickup weapon (W box), limited ammo
   bomb: Bomb; // button K
+  airJumps?: number; // extra mid-air jumps (e.g. 1 = double jump)
 }
 
 export const CHARACTERS: Record<CharacterId, Character> = {
@@ -73,6 +76,25 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       },
     },
   },
+  C: {
+    id: "C",
+    name: "C",
+    attribute: "光",
+    bodyColor: "#fcd34d",
+    accent: "#fef08a",
+    // Normal attack matches B's, but white.
+    normal: {
+      name: "LIGHT", fireDelay: 0.24, pellets: 1, spread: 0, speed: 620,
+      damage: 1, radius: 5, color: "#f8fafc", range: 460, ammo: 0, style: "light",
+    },
+    // Special fires forward and straight up at the same time.
+    special: {
+      name: "TWIN", fireDelay: 0.28, pellets: 1, spread: 0, speed: 660,
+      damage: 2, radius: 5, color: "#f8fafc", range: 440, ammo: 8, extraUp: true, style: "light",
+    },
+    bomb: { kind: "heal", amount: 2 },
+    airJumps: 1,
+  },
 };
 
-export const CHARACTER_ORDER: CharacterId[] = ["A", "B"];
+export const CHARACTER_ORDER: CharacterId[] = ["A", "B", "C"];

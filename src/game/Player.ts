@@ -32,6 +32,7 @@ export class Player {
   private crouching = false;
   private fireCooldown = 0;
   private invuln = 0;
+  private jumpsUsed = 0;
   private special = false; // using the pickup weapon instead of the main attack
   private ammo = 0;
 
@@ -78,6 +79,9 @@ export class Player {
   get bomb(): Bomb {
     return this.character.bomb;
   }
+  private get maxJumps(): number {
+    return 1 + (this.character.airJumps ?? 0);
+  }
 
   update(dt: number, input: Input, level: Level, bullets: Bullet[], audio: Sound): void {
     if (this.invuln > 0) this.invuln -= dt;
@@ -88,9 +92,11 @@ export class Player {
     this.vx = move * MOVE_SPEED;
     if (move !== 0) this.facing = move;
 
-    if (this.onGround && !this.crouching && input.wasPressed("Space")) {
+    if (this.onGround) this.jumpsUsed = 0;
+    if (!this.crouching && input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
       this.vy = -JUMP_SPEED;
       this.onGround = false;
+      this.jumpsUsed += 1;
       audio.jump();
     }
 
@@ -163,15 +169,25 @@ export class Player {
     if (!firing || this.fireCooldown > 0) return;
 
     const spec = this.special ? this.character.special : this.character.normal;
-    const aim = this.aim(input);
-    const baseAngle = Math.atan2(aim.y, aim.x);
-    const muzzle = new Vector2(this.centerX + aim.x * 18, this.gunY() + aim.y * 14);
 
-    for (let i = 0; i < spec.pellets; i++) {
-      const spread = spec.spread === 0 ? 0 : (Math.random() - 0.5) * spec.spread;
-      const angle = baseAngle + spread;
-      const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(spec.speed);
-      bullets.push(this.makeBullet(muzzle, vel, spec));
+    if (spec.extraUp) {
+      // Fire forward (facing) and straight up at the same time.
+      const forward = this.facing > 0 ? 0 : Math.PI;
+      const muzzle = new Vector2(this.centerX + this.facing * 18, this.gunY());
+      const fVel = new Vector2(Math.cos(forward), Math.sin(forward)).scale(spec.speed);
+      bullets.push(this.makeBullet(muzzle, fVel, spec));
+      const upMuzzle = new Vector2(this.centerX, this.y);
+      bullets.push(this.makeBullet(upMuzzle, new Vector2(0, -spec.speed), spec));
+    } else {
+      const aim = this.aim(input);
+      const baseAngle = Math.atan2(aim.y, aim.x);
+      const muzzle = new Vector2(this.centerX + aim.x * 18, this.gunY() + aim.y * 14);
+      for (let i = 0; i < spec.pellets; i++) {
+        const spread = spec.spread === 0 ? 0 : (Math.random() - 0.5) * spec.spread;
+        const angle = baseAngle + spread;
+        const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(spec.speed);
+        bullets.push(this.makeBullet(muzzle, vel, spec));
+      }
     }
 
     this.fireCooldown = spec.fireDelay;
@@ -239,6 +255,7 @@ export class Player {
     this.hp = MAX_HP;
     this.invuln = RESPAWN_INVULN;
     this.crouching = false;
+    this.jumpsUsed = 0;
     this.special = false;
     this.ammo = 0;
     this.bombs = 1;

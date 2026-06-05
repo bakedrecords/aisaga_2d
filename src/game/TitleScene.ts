@@ -11,6 +11,7 @@ const PREV_KEYS = ["ArrowLeft", "KeyA"];
 const ABILITIES: Record<CharacterId, string[]> = {
   A: ["通常: 黄色い弾（標準）", "特殊(W): 炎の拡散ショット", "ボム(K): 自分中心の大爆発"],
   B: ["通常: 黒い弾（やや遅い）", "特殊(W): 黒い貫通レーザー", "ボム(K): 前方ショットガン3発"],
+  C: ["通常: 白い弾（Bと同じ）", "特殊(W): 前方＋上に同時発射", "ボム(K): HPを2回復", "★ 二段ジャンプ可"],
 };
 
 /** The opening screen: pick a character, then start. */
