@@ -64,17 +64,16 @@ export class Game implements SceneManager {
     this.lastTime = time;
     this.accumulator += frameTime;
 
-    let stepped = false;
     while (this.accumulator >= STEP) {
       this.scene.update(STEP, this.input, this);
+      // Consume edge-triggered input (wasPressed) per step, so a single press
+      // can't be processed twice when a frame runs multiple catch-up steps —
+      // which would otherwise spend both jumps of a double jump on one tap.
+      this.input.endFrame();
       this.accumulator -= STEP;
-      stepped = true;
       // Stop stepping the old scene the moment a transition is requested.
       if (this.pendingScene) break;
     }
-    // Reset edge-triggered input only once an update has consumed it, so quick
-    // taps aren't lost on frames that run zero update steps (high refresh rates).
-    if (stepped) this.input.endFrame();
 
     if (this.pendingScene) {
       this.scene = this.pendingScene;
