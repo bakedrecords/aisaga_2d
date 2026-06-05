@@ -62,33 +62,58 @@ body.touch .tc-group {
 }
 
 /* D-pad: a plus shape, bottom-left. */
+/* A round pad split into four wedges by the 45° diagonals. */
 body.touch .tc-dpad {
   left: calc(16px + env(safe-area-inset-left));
   bottom: calc(16px + env(safe-area-inset-bottom));
-  display: grid;
-  grid-template-columns: 68px 50px 68px;
-  grid-template-rows: 68px 50px 68px;
-  gap: 0;
+  display: block;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+body.touch .tc-dpad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(226, 232, 240, 0.22);
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1px), rgba(226, 232, 240, 0.22) 50%, transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), rgba(226, 232, 240, 0.22) 50%, transparent calc(50% + 1px));
+  pointer-events: none;
+  z-index: 2;
 }
 
 .tc-dpad .tc-btn {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
+  border-radius: 0;
+  background: rgba(148, 163, 184, 0.22);
+  display: grid;
+  padding: 12px;
   font-size: 22px;
 }
 
 .tc-up {
-  grid-area: 1 / 2;
-}
-.tc-left {
-  grid-area: 2 / 1;
+  clip-path: polygon(50% 50%, 0 0, 100% 0);
+  place-items: start center;
 }
 .tc-right {
-  grid-area: 2 / 3;
+  clip-path: polygon(50% 50%, 100% 0, 100% 100%);
+  place-items: center end;
 }
 .tc-down {
-  grid-area: 3 / 2;
+  clip-path: polygon(50% 50%, 100% 100%, 0 100%);
+  place-items: end center;
+}
+.tc-left {
+  clip-path: polygon(50% 50%, 0 100%, 0 0);
+  place-items: center start;
 }
 
 /* Action buttons, bottom-right. */

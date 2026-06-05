@@ -1,6 +1,5 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
-import { clamp } from "../engine/Vector2";
 import type { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
 import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
@@ -73,6 +72,23 @@ export class PlayScene implements Scene {
     this.lives = this.startLives;
     this.state = "playing";
     sound.setBgm(true);
+  }
+
+  /** On losing a life, rebuild the stage and send the player to the start. */
+  private respawnAtStart(): void {
+    this.player.respawn(120, this.level.groundY - 44);
+    this.enemies = this.stageDef.enemies.map((e) => this.createEnemy(e.type, e.x));
+    this.pickups = this.stageDef.pickups.map(
+      (p) => new Pickup(p.x, this.level.groundY, toPickupConfig(p)),
+    );
+    this.boss = this.level.isBossStage
+      ? new Boss(this.level.width - 320, this.level.groundY)
+      : null;
+    this.playerBullets = [];
+    this.enemyBullets = [];
+    this.particles = new Particles();
+    this.bombFlash = 0;
+    this.camera.follow(this.player.centerX);
   }
 
   private createEnemy(kind: EnemyKind, x: number): Enemy {
@@ -295,18 +311,14 @@ export class PlayScene implements Scene {
 
   private checkWinLose(): void {
     if (!this.player.alive) {
-      this.particles.burst(this.player.center, "#fca5a5", 26, 340, { life: 0.6, size: 4 });
       this.camera.shake(16);
+      sound.explosion();
       if (this.lives > 1) {
         this.lives -= 1;
-        sound.explosion();
-        this.enemyBullets = [];
-        this.player.respawn(
-          clamp(this.player.centerX - 40, 60, this.level.width - 80),
-          this.level.groundY - 44,
-        );
+        this.respawnAtStart();
       } else {
         this.lives = 0;
+        this.particles.burst(this.player.center, "#fca5a5", 26, 340, { life: 0.6, size: 4 });
         this.state = "lost";
         sound.gameover();
         sound.setBgm(false);
