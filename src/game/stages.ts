@@ -19,6 +19,7 @@ export interface PlatformDef {
 export type PickupDef =
   | { kind: "weapon"; x: number; weapon: WeaponId }
   | { kind: "health"; x: number }
+  | { kind: "bomb"; x: number }
   | { kind: "score"; x: number; value: number };
 
 /** A ground spike strip that damages the player on contact. */
@@ -84,11 +85,12 @@ export const STAGES: StageDef[] = [
       { type: "shooter", x: 7350 },
     ],
     pickups: [
-      { kind: "weapon", weapon: "machinegun", x: 520 },
+      { kind: "weapon", weapon: "flame", x: 520 },
       { kind: "score", value: 300, x: 1250 },
       { kind: "health", x: 2600 },
+      { kind: "bomb", x: 3450 },
       { kind: "score", value: 300, x: 3900 },
-      { kind: "weapon", weapon: "machinegun", x: 5100 },
+      { kind: "weapon", weapon: "flame", x: 5100 },
       { kind: "health", x: 6300 },
       { kind: "score", value: 500, x: 7200 },
     ],
@@ -143,13 +145,13 @@ export const STAGES: StageDef[] = [
       { type: "walker", x: 8200 },
     ],
     pickups: [
-      { kind: "weapon", weapon: "shotgun", x: 420 },
+      { kind: "weapon", weapon: "flame", x: 420 },
       { kind: "health", x: 1300 },
-      { kind: "weapon", weapon: "machinegun", x: 2500 },
+      { kind: "bomb", x: 2500 },
       { kind: "score", value: 300, x: 3600 },
-      { kind: "weapon", weapon: "shotgun", x: 5000 },
+      { kind: "weapon", weapon: "flame", x: 5000 },
       { kind: "health", x: 6200 },
-      { kind: "weapon", weapon: "machinegun", x: 7400 },
+      { kind: "bomb", x: 7400 },
       { kind: "score", value: 500, x: 8200 },
     ],
   },
@@ -185,9 +187,9 @@ export const STAGES: StageDef[] = [
       { type: "walker", x: 4200 },
     ],
     pickups: [
-      { kind: "weapon", weapon: "rocket", x: 320 },
+      { kind: "bomb", x: 320 },
       { kind: "health", x: 1500 },
-      { kind: "weapon", weapon: "machinegun", x: 3000 },
+      { kind: "weapon", weapon: "flame", x: 3000 },
       { kind: "health", x: 4200 },
     ],
     boss: true,

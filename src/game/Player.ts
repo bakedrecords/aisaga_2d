@@ -15,6 +15,7 @@ const GRAVITY = 1700;
 const MAX_HP = 5;
 const HIT_INVULN = 1.2;
 const RESPAWN_INVULN = 2;
+const MAX_BOMBS = 3;
 
 const UP_KEYS = ["ArrowUp", "KeyW"];
 const DOWN_KEYS = ["ArrowDown", "KeyS"];
@@ -35,6 +36,7 @@ export class Player {
   private ammo = 0;
 
   hp = MAX_HP;
+  bombs = 1;
 
   constructor(x: number, y: number) {
     this.x = x;
@@ -200,6 +202,17 @@ export class Player {
     this.hp = Math.min(MAX_HP, this.hp + amount);
   }
 
+  addBomb(): void {
+    this.bombs = Math.min(MAX_BOMBS, this.bombs + 1);
+  }
+
+  /** Spend one bomb if available. Returns true if a bomb was consumed. */
+  consumeBomb(): boolean {
+    if (this.bombs <= 0) return false;
+    this.bombs -= 1;
+    return true;
+  }
+
   /** Revive after losing a life: full HP, brief invulnerability, back to pistol. */
   respawn(x: number, y: number): void {
     this.x = x;
@@ -211,6 +224,7 @@ export class Player {
     this.crouching = false;
     this.weapon = "pistol";
     this.ammo = 0;
+    this.bombs = 1;
   }
 
   render(ctx: CanvasRenderingContext2D): void {

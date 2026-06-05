@@ -7,9 +7,10 @@ const HEIGHT = 24;
 export type PickupConfig =
   | { kind: "weapon"; weapon: WeaponId }
   | { kind: "health" }
+  | { kind: "bomb" }
   | { kind: "score"; value: number };
 
-/** A floating crate the player walks into: a weapon, a health refill or score. */
+/** A floating crate the player walks into: a weapon, health, a bomb or score. */
 export class Pickup {
   alive = true;
   private t = Math.random() * Math.PI * 2;
@@ -33,14 +34,18 @@ export class Pickup {
   }
 
   private get color(): string {
-    if (this.config.kind === "weapon") return WEAPONS[this.config.weapon].color;
-    if (this.config.kind === "health") return "#4ade80";
+    const c = this.config;
+    if (c.kind === "weapon") return WEAPONS[c.weapon].color;
+    if (c.kind === "health") return "#4ade80";
+    if (c.kind === "bomb") return "#fbbf24";
     return "#38bdf8";
   }
 
   private get label(): string {
-    if (this.config.kind === "weapon") return this.config.weapon.charAt(0).toUpperCase();
-    if (this.config.kind === "health") return "+";
+    const c = this.config;
+    if (c.kind === "weapon") return c.weapon.charAt(0).toUpperCase();
+    if (c.kind === "health") return "+";
+    if (c.kind === "bomb") return "B";
     return "$";
   }
 

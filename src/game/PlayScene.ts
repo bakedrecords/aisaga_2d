@@ -11,11 +11,11 @@ import { Player } from "./Player";
 import { sound } from "./Sound";
 import { type EnemyKind, type PickupDef, type StageDef, STAGES } from "./stages";
 import { TitleScene } from "./TitleScene";
-import { PICKUP_WEAPONS } from "./weapons";
 
 const CLEAR_BONUS = 500;
-const ROCKET_RADIUS = 92;
 const DEFAULT_LIVES = 3;
+const BOMB_RADIUS = 260;
+const BOMB_DAMAGE = 8;
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -95,6 +95,10 @@ export class PlayScene implements Scene {
 
     sound.update();
     this.player.update(dt, input, this.level, this.playerBullets, sound);
+
+    if (input.wasPressed("KeyK") && this.player.consumeBomb()) {
+      this.detonateBomb();
+    }
 
     const ctx: EnemyContext = {
       dt,
@@ -178,11 +182,7 @@ export class PlayScene implements Scene {
   }
 
   private onBulletImpact(b: Bullet): void {
-    if (b.explosive) {
-      this.explodeAt(b.pos, ROCKET_RADIUS, b.damage);
-    } else {
-      this.particles.burst(b.pos, "#fef9c3", 5, 160, { life: 0.25, size: 2, gravity: 0 });
-    }
+    this.particles.burst(b.pos, "#fef9c3", 5, 160, { life: 0.25, size: 2, gravity: 0 });
     b.kill();
   }
 
@@ -196,6 +196,14 @@ export class PlayScene implements Scene {
         this.hurtEnemy(e, damage);
       }
     }
+  }
+
+  /** The bomb special ability: a strong blast centered on the player. */
+  private detonateBomb(): void {
+    const c = this.player.center;
+    this.explodeAt(c, BOMB_RADIUS, BOMB_DAMAGE);
+    this.particles.burst(c, "#fde047", 50, 560, { life: 0.7, size: 6, gravity: 80 });
+    this.camera.shake(26);
   }
 
   private hurtEnemy(e: Enemy, damage: number): void {
@@ -268,6 +276,7 @@ export class PlayScene implements Scene {
       const c = p.config;
       if (c.kind === "weapon") this.player.pickupWeapon(c.weapon);
       else if (c.kind === "health") this.player.heal(2);
+      else if (c.kind === "bomb") this.player.addBomb();
       else this.score += c.value;
       sound.pickup();
       p.alive = false;
@@ -438,11 +447,15 @@ export class PlayScene implements Scene {
     const ammo = this.player.hasInfiniteAmmo ? "∞" : String(this.player.weaponAmmo);
     ctx.fillText(`${this.player.weaponName}  ${ammo}`, this.viewWidth - 16, 28);
 
+    ctx.fillStyle = this.player.bombs > 0 ? "#fbbf24" : "#475569";
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillText(`BOMB ×${this.player.bombs}  [K]`, this.viewWidth - 16, 52);
+
     ctx.textAlign = "left";
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px system-ui, sans-serif";
     ctx.fillText(
-      "移動 A/D   ジャンプ Space   照準 ↑/↓+方向   しゃがみ ↓   ショット J",
+      "移動 A/D  ジャンプ Space  照準 ↑↓+方向  ショット J  ボム K",
       16,
       this.viewHeight - 16,
     );
@@ -504,16 +517,15 @@ export class PlayScene implements Scene {
 function toPickupConfig(def: PickupDef): PickupConfig {
   if (def.kind === "weapon") return { kind: "weapon", weapon: def.weapon };
   if (def.kind === "health") return { kind: "health" };
+  if (def.kind === "bomb") return { kind: "bomb" };
   return { kind: "score", value: def.value };
 }
 
 function rollDrop(): PickupConfig | null {
   const r = Math.random();
-  if (r < 0.12) {
-    const w = PICKUP_WEAPONS[Math.floor(Math.random() * PICKUP_WEAPONS.length)] ?? "machinegun";
-    return { kind: "weapon", weapon: w };
-  }
-  if (r < 0.2) return { kind: "health" };
-  if (r < 0.3) return { kind: "score", value: 200 };
+  if (r < 0.1) return { kind: "weapon", weapon: "flame" };
+  if (r < 0.16) return { kind: "bomb" };
+  if (r < 0.24) return { kind: "health" };
+  if (r < 0.34) return { kind: "score", value: 200 };
   return null;
 }

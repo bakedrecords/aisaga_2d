@@ -76,8 +76,7 @@ export class Sound {
   }
 
   shoot(weapon: string): void {
-    if (weapon === "rocket") this.tone(190, 0.12, "square", 0.28);
-    else if (weapon === "shotgun") this.noise(0.12, 0.3);
+    if (weapon === "flame") this.noise(0.06, 0.16);
     else this.tone(820, 0.05, "square", 0.2);
   }
 

@@ -6,9 +6,8 @@ import { sound } from "./Sound";
 const START_KEYS = ["Space", "KeyJ", "Enter"];
 
 const ITEMS: { label: string; color: string; text: string }[] = [
-  { label: "M", color: "#fef08a", text: "マシンガン（高速連射・射程長め）" },
-  { label: "S", color: "#fdba74", text: "ショットガン（拡散・近距離）" },
-  { label: "R", color: "#fb7185", text: "ロケット（爆発・範囲ダメージ）" },
+  { label: "F", color: "#fb923c", text: "炎（火炎放射・近距離）" },
+  { label: "B", color: "#fbbf24", text: "ボム（自分中心の大範囲・別ボタン K）" },
   { label: "+", color: "#4ade80", text: "回復（HP+2）" },
   { label: "$", color: "#38bdf8", text: "スコアボーナス" },
 ];
@@ -45,7 +44,7 @@ export class TitleScene implements Scene {
     ctx.fillStyle = "#94a3b8";
     ctx.font = "14px system-ui, sans-serif";
     ctx.fillText(
-      "移動 A/D・←→   ジャンプ Space   照準 ↑/↓＋方向   しゃがみ ↓   ショット J",
+      "移動 A/D・←→  ジャンプ Space  照準 ↑↓＋方向  ショット J  ボム K",
       w / 2,
       188,
     );
