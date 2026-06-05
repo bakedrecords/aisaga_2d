@@ -38,6 +38,17 @@ export class Input {
     return this.pressed.has(code);
   }
 
+  /** Inject a key press from on-screen/touch controls (mirrors a keydown). */
+  pressKey(code: string): void {
+    if (!this.held.has(code)) this.pressed.add(code);
+    this.held.add(code);
+  }
+
+  /** Release a virtual key (mirrors a keyup). */
+  releaseKey(code: string): void {
+    this.held.delete(code);
+  }
+
   /** Horizontal movement axis: -1 (left), 0, or +1 (right). */
   horizontal(): number {
     return (

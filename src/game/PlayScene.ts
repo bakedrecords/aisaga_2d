@@ -133,7 +133,9 @@ export class PlayScene implements Scene {
       }
       return;
     }
-    if (input.wasPressed("KeyR")) {
+    // On the lost/complete screen, jump/shoot or R retries; T returns to title.
+    const retry = ["Space", "Enter", "KeyJ", "KeyR"].some((k) => input.wasPressed(k));
+    if (retry) {
       const index = this.state === "complete" ? 0 : this.stageIndex;
       const score = this.state === "complete" ? 0 : this.startScore;
       game.changeScene(

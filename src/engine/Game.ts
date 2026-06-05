@@ -12,7 +12,8 @@ const MAX_FRAME_TIME = 0.25;
  */
 export class Game implements SceneManager {
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly input: Input;
+  /** Shared input; exposed so on-screen/touch controls can feed it. */
+  readonly input: Input;
   private scene: Scene;
   private pendingScene: Scene | null = null;
   private lastTime = 0;
