@@ -174,6 +174,7 @@ export class Player {
           explosive: spec.explosive,
           color: spec.color,
           range: spec.range,
+          flame: spec.id === "flame",
         }),
       );
     }
