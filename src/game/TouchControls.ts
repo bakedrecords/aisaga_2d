@@ -71,10 +71,15 @@ class Joystick {
 
   private apply(nx: number, ny: number): void {
     const want = new Set<string>();
-    if (nx <= -Joystick.DEADZONE) want.add("KeyA");
-    else if (nx >= Joystick.DEADZONE) want.add("KeyD");
-    if (ny <= -Joystick.DEADZONE) want.add("ArrowUp");
-    else if (ny >= Joystick.DEADZONE) want.add("ArrowDown");
+    // Horizontal = movement only; vertical = aim only — whichever axis the
+    // stick leans toward more, so move and aim never fire at the same time.
+    if (Math.abs(nx) >= Math.abs(ny)) {
+      if (nx <= -Joystick.DEADZONE) want.add("KeyA");
+      else if (nx >= Joystick.DEADZONE) want.add("KeyD");
+    } else {
+      if (ny <= -Joystick.DEADZONE) want.add("ArrowUp");
+      else if (ny >= Joystick.DEADZONE) want.add("ArrowDown");
+    }
 
     for (const k of want) if (!this.active.has(k)) this.input.pressKey(k, true);
     for (const k of this.active) if (!want.has(k)) this.input.releaseKey(k);
