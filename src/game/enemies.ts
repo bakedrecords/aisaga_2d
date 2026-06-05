@@ -133,7 +133,7 @@ export class Shooter extends Enemy {
   private static readonly SPEED = 52;
   private static readonly RANGE = 360;
   private static readonly INTERVAL = 1.6;
-  private static readonly BULLET_SPEED = 330;
+  private static readonly BULLET_SPEED = 280;
 
   constructor(x: number, groundY: number) {
     super(x, groundY - 44, 3, 150);
@@ -286,7 +286,7 @@ export class Boss extends Enemy {
     this.timer -= ctx.dt;
     this.windup = this.timer < 0.3;
     if (this.timer <= 0) {
-      this.timer = this.enraged ? 1 : 1.7;
+      this.timer = this.enraged ? 1.3 : 2.0;
       this.firePattern(ctx);
       this.pattern = (this.pattern + 1) % 3;
       ctx.audio.enemyShoot();
@@ -306,12 +306,12 @@ export class Boss extends Enemy {
       );
 
     if (this.pattern === 0) {
-      for (let i = -2; i <= 2; i++) shoot(aim + i * 0.17, 300);
+      for (let i = -2; i <= 2; i++) shoot(aim + i * 0.17, 260);
     } else if (this.pattern === 1) {
       const n = this.enraged ? 16 : 12;
-      for (let i = 0; i < n; i++) shoot((i / n) * Math.PI * 2, 230);
+      for (let i = 0; i < n; i++) shoot((i / n) * Math.PI * 2, 200);
     } else {
-      for (let i = -1; i <= 1; i++) shoot(aim + i * 0.06, 380);
+      for (let i = -1; i <= 1; i++) shoot(aim + i * 0.06, 320);
     }
   }
 

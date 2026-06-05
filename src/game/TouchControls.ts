@@ -7,90 +7,9 @@ interface ButtonDef {
 }
 
 /**
- * A virtual joystick for movement + aim. Dragging the knob past a deadzone
- * presses the matching direction keys (KeyA/KeyD/ArrowUp/ArrowDown), so the
- * game logic is unchanged.
- */
-class Joystick {
-  private readonly base = document.createElement("div");
-  private readonly knob = document.createElement("div");
-  private pointerId: number | null = null;
-  private cx = 0;
-  private cy = 0;
-  private active = new Set<string>();
-  private static readonly RADIUS = 50;
-  private static readonly DEADZONE = 0.36;
-
-  constructor(private readonly input: Input) {
-    this.base.className = "tc-stick";
-    this.knob.className = "tc-knob";
-    this.base.appendChild(this.knob);
-    document.body.appendChild(this.base);
-
-    this.base.addEventListener("pointerdown", this.onDown);
-    window.addEventListener("pointermove", this.onMove);
-    window.addEventListener("pointerup", this.onUp);
-    window.addEventListener("pointercancel", this.onUp);
-    this.base.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
-    this.base.addEventListener("contextmenu", (e) => e.preventDefault());
-  }
-
-  private readonly onDown = (e: PointerEvent): void => {
-    e.preventDefault();
-    this.pointerId = e.pointerId;
-    const r = this.base.getBoundingClientRect();
-    this.cx = r.left + r.width / 2;
-    this.cy = r.top + r.height / 2;
-    this.moveTo(e.clientX, e.clientY);
-  };
-
-  private readonly onMove = (e: PointerEvent): void => {
-    if (this.pointerId !== e.pointerId) return;
-    this.moveTo(e.clientX, e.clientY);
-  };
-
-  private readonly onUp = (e: PointerEvent): void => {
-    if (this.pointerId !== e.pointerId) return;
-    this.pointerId = null;
-    this.knob.style.transform = "translate(0px, 0px)";
-    this.knob.classList.remove("tc-active");
-    this.apply(0, 0);
-  };
-
-  private moveTo(clientX: number, clientY: number): void {
-    let dx = clientX - this.cx;
-    let dy = clientY - this.cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist > Joystick.RADIUS) {
-      dx = (dx / dist) * Joystick.RADIUS;
-      dy = (dy / dist) * Joystick.RADIUS;
-    }
-    this.knob.style.transform = `translate(${dx}px, ${dy}px)`;
-    this.apply(dx / Joystick.RADIUS, dy / Joystick.RADIUS);
-  }
-
-  private apply(nx: number, ny: number): void {
-    const want = new Set<string>();
-    // Horizontal = movement only; vertical = aim only — whichever axis the
-    // stick leans toward more, so move and aim never fire at the same time.
-    if (Math.abs(nx) >= Math.abs(ny)) {
-      if (nx <= -Joystick.DEADZONE) want.add("KeyA");
-      else if (nx >= Joystick.DEADZONE) want.add("KeyD");
-    } else {
-      if (ny <= -Joystick.DEADZONE) want.add("ArrowUp");
-      else if (ny >= Joystick.DEADZONE) want.add("ArrowDown");
-    }
-
-    for (const k of want) if (!this.active.has(k)) this.input.pressKey(k, true);
-    for (const k of this.active) if (!want.has(k)) this.input.releaseKey(k);
-    this.active = want;
-    this.knob.classList.toggle("tc-active", want.size > 0);
-  }
-}
-
-/**
- * On-screen touch controls for phones/tablets. A virtual joystick handles
- * movement/aim; the rest are buttons feeding virtual key presses into Input.
+ * On-screen touch controls for phones/tablets. Built only on touch devices;
+ * each button feeds virtual key presses into the shared Input, so the game
+ * logic is identical to the keyboard version.
  */
 export class TouchControls {
   constructor(private readonly input: Input) {
@@ -104,8 +23,13 @@ export class TouchControls {
   }
 
   private build(): void {
-    new Joystick(this.input);
     document.body.append(
+      this.group("tc-dpad", [
+        { label: "◀", code: "KeyA", className: "tc-left" },
+        { label: "▶", code: "KeyD", className: "tc-right" },
+        { label: "▲", code: "ArrowUp", className: "tc-up" },
+        { label: "▼", code: "ArrowDown", className: "tc-down" },
+      ]),
       this.group("tc-actions", [
         { label: "JUMP", code: "Space", className: "tc-jump" },
         { label: "SHOT", code: "KeyJ", className: "tc-shot" },
@@ -128,6 +52,9 @@ export class TouchControls {
     el.textContent = def.label;
     el.setAttribute("aria-label", def.code);
 
+    // Press/release are idempotent (Input uses a Set), so wiring both pointer
+    // and touch events is safe — and preventing the touch default stops the
+    // long-press text selection / callout that could swallow inputs.
     const press = (e: Event) => {
       e.preventDefault();
       this.input.pressKey(def.code, true);
