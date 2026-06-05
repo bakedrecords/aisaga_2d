@@ -1,6 +1,6 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
-import { clamp, type Vector2 } from "../engine/Vector2";
+import { clamp } from "../engine/Vector2";
 import type { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
 import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
@@ -14,7 +14,6 @@ import { TitleScene } from "./TitleScene";
 
 const CLEAR_BONUS = 500;
 const DEFAULT_LIVES = 3;
-const BOMB_RADIUS = 260;
 const BOMB_DAMAGE = 8;
 
 type State = "playing" | "won" | "lost" | "complete";
@@ -31,6 +30,7 @@ export class PlayScene implements Scene {
   private enemyBullets: Bullet[] = [];
   private pickups: Pickup[] = [];
   private particles = new Particles();
+  private bombFlash = 0;
   private score = 0;
   private lives = DEFAULT_LIVES;
   private state: State = "playing";
@@ -125,6 +125,7 @@ export class PlayScene implements Scene {
     for (const b of this.enemyBullets) b.update(dt);
     for (const p of this.pickups) p.update(dt);
     this.particles.update(dt);
+    if (this.bombFlash > 0) this.bombFlash -= dt;
 
     this.handlePlayerBullets();
     this.handleEnemyBullets();
@@ -186,24 +187,21 @@ export class PlayScene implements Scene {
     b.kill();
   }
 
-  private explodeAt(pos: Vector2, radius: number, damage: number): void {
-    this.particles.burst(pos, "#fdba74", 26, 380, { life: 0.5, size: 4, gravity: 120 });
-    this.particles.burst(pos, "#f87171", 14, 260, { life: 0.45, size: 5, gravity: 120 });
-    sound.explosion();
-    this.camera.shake(16);
-    for (const e of this.targets()) {
-      if (e.alive && e.center.add(pos.scale(-1)).length <= radius) {
-        this.hurtEnemy(e, damage);
-      }
-    }
-  }
-
-  /** The bomb special ability: a strong blast centered on the player. */
+  /** The bomb special ability: a screen-wide blast centered on the player. */
   private detonateBomb(): void {
     const c = this.player.center;
-    this.explodeAt(c, BOMB_RADIUS, BOMB_DAMAGE);
-    this.particles.burst(c, "#fde047", 50, 560, { life: 0.7, size: 6, gravity: 80 });
-    this.camera.shake(26);
+    const radius = Math.hypot(this.viewWidth, this.viewHeight) * 0.6;
+    for (const e of this.targets()) {
+      if (e.alive && e.center.add(c.scale(-1)).length <= radius) {
+        this.hurtEnemy(e, BOMB_DAMAGE);
+      }
+    }
+    this.particles.burst(c, "#fde047", 80, 920, { life: 0.7, size: 7, gravity: 60 });
+    this.particles.burst(c, "#fb923c", 64, 760, { life: 0.7, size: 7, gravity: 60 });
+    this.particles.burst(c, "#f87171", 44, 540, { life: 0.6, size: 6, gravity: 60 });
+    sound.explosion();
+    this.camera.shake(30);
+    this.bombFlash = 0.18;
   }
 
   private hurtEnemy(e: Enemy, damage: number): void {
@@ -346,6 +344,11 @@ export class PlayScene implements Scene {
     this.particles.render(ctx);
     this.player.render(ctx);
     ctx.restore();
+
+    if (this.bombFlash > 0) {
+      ctx.fillStyle = `rgba(253, 230, 138, ${Math.min(0.5, this.bombFlash * 2.6)})`;
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+    }
 
     this.drawHud(ctx);
     if (

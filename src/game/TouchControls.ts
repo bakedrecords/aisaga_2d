@@ -52,20 +52,27 @@ export class TouchControls {
     el.textContent = def.label;
     el.setAttribute("aria-label", def.code);
 
-    const press = (e: PointerEvent) => {
+    // Press/release are idempotent (Input uses a Set), so wiring both pointer
+    // and touch events is safe — and preventing the touch default stops the
+    // long-press text selection / callout that could swallow inputs.
+    const press = (e: Event) => {
       e.preventDefault();
       this.input.pressKey(def.code);
       el.classList.add("tc-active");
     };
-    const release = (e: PointerEvent) => {
+    const release = (e: Event) => {
       e.preventDefault();
       this.input.releaseKey(def.code);
       el.classList.remove("tc-active");
     };
+    const opts: AddEventListenerOptions = { passive: false };
 
     el.addEventListener("pointerdown", press);
     el.addEventListener("pointerup", release);
     el.addEventListener("pointercancel", release);
+    el.addEventListener("touchstart", press, opts);
+    el.addEventListener("touchend", release, opts);
+    el.addEventListener("touchcancel", release, opts);
     el.addEventListener("contextmenu", (e) => e.preventDefault());
     return el;
   }

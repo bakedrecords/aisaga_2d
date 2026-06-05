@@ -53,6 +53,8 @@ body.touch .tc-group {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tc-btn.tc-active {
