@@ -62,63 +62,34 @@ body.touch .tc-group {
 }
 
 /* D-pad: a plus shape, bottom-left. */
-/* A round pad split into four wedges by the 45° diagonals. */
-body.touch .tc-dpad {
-  left: calc(16px + env(safe-area-inset-left));
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  display: block;
-  width: 216px;
-  height: 216px;
+/* Virtual joystick (movement + aim), bottom-left. */
+body.touch .tc-stick {
+  position: fixed;
+  left: calc(20px + env(safe-area-inset-left));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.35);
-  overflow: hidden;
-}
-
-body.touch .tc-dpad::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
   border: 2px solid rgba(226, 232, 240, 0.22);
-  background:
-    linear-gradient(45deg, transparent calc(50% - 1px), rgba(226, 232, 240, 0.22) 50%, transparent calc(50% + 1px)),
-    linear-gradient(-45deg, transparent calc(50% - 1px), rgba(226, 232, 240, 0.22) 50%, transparent calc(50% + 1px));
-  pointer-events: none;
-  z-index: 2;
+  touch-action: none;
+  z-index: 10;
 }
 
-.tc-dpad .tc-btn {
+.tc-knob {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 0;
-  background: rgba(148, 163, 184, 0.22);
-  display: grid;
-  padding: 14px;
-  font-size: 26px;
+  left: 50%;
+  top: 50%;
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.5);
+  pointer-events: none;
 }
 
-/* Higher specificity than the d-pad base, so a pressed wedge lights up. */
-.tc-dpad .tc-btn.tc-active {
-  background: rgba(74, 222, 128, 0.5);
-}
-
-.tc-up {
-  clip-path: polygon(50% 50%, 0 0, 100% 0);
-  place-items: start center;
-}
-.tc-right {
-  clip-path: polygon(50% 50%, 100% 0, 100% 100%);
-  place-items: center end;
-}
-.tc-down {
-  clip-path: polygon(50% 50%, 100% 100%, 0 100%);
-  place-items: end center;
-}
-.tc-left {
-  clip-path: polygon(50% 50%, 0 100%, 0 0);
-  place-items: center start;
+.tc-knob.tc-active {
+  background: rgba(74, 222, 128, 0.6);
 }
 
 /* Action buttons, bottom-right. */
