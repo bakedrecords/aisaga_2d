@@ -75,8 +75,10 @@ export class Sound {
     src.start();
   }
 
-  shoot(weapon: string): void {
-    if (weapon === "flame") this.noise(0.06, 0.16);
+  shoot(kind: string): void {
+    if (kind === "flame") this.noise(0.06, 0.16);
+    else if (kind === "laser") this.tone(300, 0.14, "sawtooth", 0.16);
+    else if (kind === "dark") this.tone(150, 0.09, "square", 0.18);
     else this.tone(820, 0.05, "square", 0.2);
   }
 

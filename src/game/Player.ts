@@ -2,9 +2,9 @@ import type { Input } from "../engine/Input";
 import { Rect } from "../engine/Rect";
 import { clamp, Vector2 } from "../engine/Vector2";
 import { Bullet } from "./Bullet";
+import type { Bomb, Character, WeaponSpec } from "./characters";
 import type { Level } from "./Level";
 import type { Sound } from "./Sound";
-import { WEAPONS, type WeaponId } from "./weapons";
 
 const WIDTH = 28;
 const STAND_H = 44;
@@ -21,7 +21,7 @@ const UP_KEYS = ["ArrowUp", "KeyW"];
 const DOWN_KEYS = ["ArrowDown", "KeyS"];
 const FIRE_KEYS = ["KeyJ", "KeyZ"];
 
-/** The run-and-gun player: runs, jumps, crouches, aims 8 ways and fires weapons. */
+/** The player. Movement is shared; weapons/bomb come from the chosen Character. */
 export class Player {
   private x: number;
   private y: number;
@@ -32,13 +32,17 @@ export class Player {
   private crouching = false;
   private fireCooldown = 0;
   private invuln = 0;
-  private weapon: WeaponId = "pistol";
+  private special = false; // using the pickup weapon instead of the main attack
   private ammo = 0;
 
   hp = MAX_HP;
   bombs = 1;
 
-  constructor(x: number, y: number) {
+  constructor(
+    x: number,
+    y: number,
+    private readonly character: Character,
+  ) {
     this.x = x;
     this.y = y;
   }
@@ -55,23 +59,24 @@ export class Player {
   get center(): Vector2 {
     return new Vector2(this.x + WIDTH / 2, this.y + STAND_H / 2);
   }
-  /** Full-height physics box. */
   get bounds(): Rect {
     return new Rect(this.x, this.y, WIDTH, STAND_H);
   }
-  /** Damage box — shorter while crouching, so high shots pass overhead. */
   get hurtBounds(): Rect {
     if (!this.crouching) return this.bounds;
     return new Rect(this.x, this.y + (STAND_H - CROUCH_H), WIDTH, CROUCH_H);
   }
   get weaponName(): string {
-    return WEAPONS[this.weapon].name;
+    return this.special ? this.character.special.name : this.character.normal.name;
   }
   get weaponAmmo(): number {
     return this.ammo;
   }
   get hasInfiniteAmmo(): boolean {
-    return this.weapon === "pistol";
+    return !this.special;
+  }
+  get bomb(): Bomb {
+    return this.character.bomb;
   }
 
   update(dt: number, input: Input, level: Level, bullets: Bullet[], audio: Sound): void {
@@ -127,7 +132,6 @@ export class Player {
     }
   }
 
-  /** The 8-way aim direction from held keys, relative to facing. */
   private aim(input: Input): Vector2 {
     const up = UP_KEYS.some((k) => input.isDown(k));
     const down = DOWN_KEYS.some((k) => input.isDown(k));
@@ -158,7 +162,7 @@ export class Player {
     const firing = FIRE_KEYS.some((k) => input.isDown(k));
     if (!firing || this.fireCooldown > 0) return;
 
-    const spec = WEAPONS[this.weapon];
+    const spec = this.special ? this.character.special : this.character.normal;
     const aim = this.aim(input);
     const baseAngle = Math.atan2(aim.y, aim.x);
     const muzzle = new Vector2(this.centerX + aim.x * 18, this.gunY() + aim.y * 14);
@@ -167,30 +171,44 @@ export class Player {
       const spread = spec.spread === 0 ? 0 : (Math.random() - 0.5) * spec.spread;
       const angle = baseAngle + spread;
       const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(spec.speed);
-      bullets.push(
-        new Bullet(muzzle, vel, {
-          radius: spec.radius,
-          damage: spec.damage,
-          explosive: spec.explosive,
-          color: spec.color,
-          range: spec.range,
-          flame: spec.id === "flame",
-        }),
-      );
+      bullets.push(this.makeBullet(muzzle, vel, spec));
     }
 
     this.fireCooldown = spec.fireDelay;
-    audio.shoot(this.weapon);
+    audio.shoot(spec.style ?? "gun");
 
-    if (this.weapon !== "pistol") {
+    if (this.special) {
       this.ammo -= 1;
-      if (this.ammo <= 0) this.weapon = "pistol";
+      if (this.ammo <= 0) this.special = false;
     }
   }
 
-  pickupWeapon(id: WeaponId): void {
-    this.weapon = id;
-    this.ammo = WEAPONS[id].ammo;
+  /** Fire a forward shotgun burst (the bomb ability for some characters). */
+  fireBombShotgun(bullets: Bullet[], shot: WeaponSpec): void {
+    const forward = this.facing > 0 ? 0 : Math.PI;
+    const muzzle = new Vector2(this.centerX + this.facing * 20, this.gunY());
+    for (let i = 0; i < shot.pellets; i++) {
+      const offset = (i - (shot.pellets - 1) / 2) * shot.spread;
+      const angle = forward + offset;
+      const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(shot.speed);
+      bullets.push(this.makeBullet(muzzle, vel, shot));
+    }
+  }
+
+  private makeBullet(pos: Vector2, vel: Vector2, spec: WeaponSpec): Bullet {
+    return new Bullet(pos, vel, {
+      radius: spec.radius,
+      damage: spec.damage,
+      color: spec.color,
+      range: spec.range,
+      pierce: spec.pierce,
+      style: spec.style,
+    });
+  }
+
+  pickupSpecial(): void {
+    this.special = true;
+    this.ammo = this.character.special.ammo;
   }
 
   hit(): void {
@@ -207,14 +225,12 @@ export class Player {
     this.bombs = Math.min(MAX_BOMBS, this.bombs + 1);
   }
 
-  /** Spend one bomb if available. Returns true if a bomb was consumed. */
   consumeBomb(): boolean {
     if (this.bombs <= 0) return false;
     this.bombs -= 1;
     return true;
   }
 
-  /** Revive after losing a life: full HP, brief invulnerability, back to pistol. */
   respawn(x: number, y: number): void {
     this.x = x;
     this.y = y;
@@ -223,7 +239,7 @@ export class Player {
     this.hp = MAX_HP;
     this.invuln = RESPAWN_INVULN;
     this.crouching = false;
-    this.weapon = "pistol";
+    this.special = false;
     this.ammo = 0;
     this.bombs = 1;
   }
@@ -233,10 +249,9 @@ export class Player {
 
     const h = this.crouching ? CROUCH_H : STAND_H;
     const top = this.crouching ? this.y + (STAND_H - CROUCH_H) : this.y;
-    ctx.fillStyle = "#4ade80";
+    ctx.fillStyle = this.character.bodyColor;
     ctx.fillRect(this.x, top, WIDTH, h);
 
-    // Gun barrel along the aim direction (purely cosmetic facing hint).
     ctx.fillStyle = "#e2e8f0";
     const gy = this.gunY();
     if (this.facing > 0) ctx.fillRect(this.x + WIDTH, gy - 2, 12, 5);

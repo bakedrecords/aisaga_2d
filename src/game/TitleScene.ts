@@ -1,26 +1,33 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
-import { PlayScene } from "./PlayScene";
+import { CHARACTER_ORDER, CHARACTERS, type CharacterId } from "./characters";
+import { DEFAULT_LIVES, PlayScene } from "./PlayScene";
 import { sound } from "./Sound";
 
 const START_KEYS = ["Space", "KeyJ", "Enter"];
+const NEXT_KEYS = ["ArrowRight", "KeyD"];
+const PREV_KEYS = ["ArrowLeft", "KeyA"];
 
-const ITEMS: { label: string; color: string; text: string }[] = [
-  { label: "F", color: "#fb923c", text: "炎（拡散・前方広範囲）" },
-  { label: "B", color: "#fbbf24", text: "ボム（自分中心の大範囲・別ボタン K）" },
-  { label: "+", color: "#4ade80", text: "回復（HP+1）" },
-  { label: "$", color: "#38bdf8", text: "スコアボーナス" },
-];
+const ABILITIES: Record<CharacterId, string[]> = {
+  A: ["通常: 黄色い弾（標準）", "特殊(W): 炎の拡散ショット", "ボム(K): 自分中心の大爆発"],
+  B: ["通常: 黒い弾（やや遅い）", "特殊(W): 黒い貫通レーザー", "ボム(K): 前方ショットガン3発"],
+};
 
-/** The opening screen: start prompt, controls, and an item legend. */
+/** The opening screen: pick a character, then start. */
 export class TitleScene implements Scene {
+  private index = 0;
+
   constructor() {
     sound.setBgm(false);
   }
 
   update(_dt: number, input: Input, game: SceneManager): void {
-    if (START_KEYS.some((key) => input.wasPressed(key))) {
-      game.changeScene(new PlayScene(game.width, game.height, 0, 0));
+    const n = CHARACTER_ORDER.length;
+    if (NEXT_KEYS.some((k) => input.wasPressed(k))) this.index = (this.index + 1) % n;
+    if (PREV_KEYS.some((k) => input.wasPressed(k))) this.index = (this.index + n - 1) % n;
+    if (START_KEYS.some((k) => input.wasPressed(k))) {
+      const id = CHARACTER_ORDER[this.index];
+      game.changeScene(new PlayScene(game.width, game.height, 0, 0, DEFAULT_LIVES, id));
     }
   }
 
@@ -32,45 +39,47 @@ export class TitleScene implements Scene {
     ctx.fillRect(0, 0, w, h);
 
     ctx.textAlign = "center";
-
     ctx.fillStyle = "#4ade80";
-    ctx.font = "bold 52px system-ui, sans-serif";
-    ctx.fillText("RUN & GUN", w / 2, 96);
+    ctx.font = "bold 50px system-ui, sans-serif";
+    ctx.fillText("RUN & GUN", w / 2, 84);
 
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = "22px system-ui, sans-serif";
-    ctx.fillText("Space / J でスタート", w / 2, 150);
-
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "14px system-ui, sans-serif";
-    ctx.fillText(
-      "移動 A/D・←→  ジャンプ Space  照準 ↑↓＋方向  ショット J  ボム K",
-      w / 2,
-      188,
-    );
-
-    // Item legend.
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "16px system-ui, sans-serif";
-    ctx.fillText("─ アイテム ─", w / 2, 236);
+    ctx.fillText("─ キャラ選択 ─", w / 2, 124);
 
-    const left = w / 2 - 185;
-    let y = 270;
-    for (const item of ITEMS) {
-      ctx.textAlign = "left";
-      ctx.fillStyle = item.color;
-      ctx.font = "bold 18px system-ui, sans-serif";
-      ctx.fillText(item.label, left, y);
-      ctx.fillStyle = "#cbd5e1";
-      ctx.font = "15px system-ui, sans-serif";
-      ctx.fillText(item.text, left + 28, y);
-      y += 28;
+    // Character swatches in a row.
+    const n = CHARACTER_ORDER.length;
+    const spacing = 150;
+    const startX = w / 2 - (spacing * (n - 1)) / 2;
+    const cardY = 150;
+    for (let i = 0; i < n; i++) {
+      const ch = CHARACTERS[CHARACTER_ORDER[i]];
+      const cx = startX + i * spacing;
+      const selected = i === this.index;
+      if (selected) {
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillRect(cx - 28, cardY - 4, 56, 56);
+      }
+      ctx.fillStyle = ch.bodyColor;
+      ctx.fillRect(cx - 24, cardY, 48, 48);
+      ctx.fillStyle = selected ? "#e2e8f0" : "#64748b";
+      ctx.font = "bold 20px system-ui, sans-serif";
+      ctx.fillText(ch.name, cx, cardY + 76);
+      ctx.fillStyle = selected ? ch.accent : "#64748b";
+      ctx.font = "14px system-ui, sans-serif";
+      ctx.fillText(ch.attribute, cx, cardY + 96);
     }
 
-    ctx.textAlign = "center";
+    // Selected character's abilities.
+    const id = CHARACTER_ORDER[this.index];
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "15px system-ui, sans-serif";
+    ABILITIES[id].forEach((line, i) => ctx.fillText(line, w / 2, 286 + i * 24));
+
     ctx.fillStyle = "#94a3b8";
     ctx.font = "14px system-ui, sans-serif";
-    ctx.fillText("全3ステージ。最後はボスを倒せ！", w / 2, y + 16);
+    ctx.fillText("← → でキャラ選択    Space / J で決定", w / 2, 384);
+    ctx.fillText("移動 A/D  ジャンプ Space  ショット J  ボム K", w / 2, 410);
 
     ctx.textAlign = "left";
   }

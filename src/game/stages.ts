@@ -1,5 +1,3 @@
-import type { WeaponId } from "./weapons";
-
 export type EnemyKind = "walker" | "shooter" | "flyer" | "brute";
 
 export interface StageTheme {
@@ -17,7 +15,7 @@ export interface PlatformDef {
 }
 
 export type PickupDef =
-  | { kind: "weapon"; x: number; weapon: WeaponId }
+  | { kind: "weapon"; x: number }
   | { kind: "health"; x: number }
   | { kind: "bomb"; x: number }
   | { kind: "score"; x: number; value: number };
@@ -85,12 +83,12 @@ export const STAGES: StageDef[] = [
       { type: "shooter", x: 7350 },
     ],
     pickups: [
-      { kind: "weapon", weapon: "flame", x: 520 },
+      { kind: "weapon", x: 520 },
       { kind: "score", value: 300, x: 1250 },
       { kind: "health", x: 2600 },
       { kind: "bomb", x: 3450 },
       { kind: "score", value: 300, x: 3900 },
-      { kind: "weapon", weapon: "flame", x: 5100 },
+      { kind: "weapon", x: 5100 },
       { kind: "health", x: 6300 },
       { kind: "score", value: 500, x: 7200 },
     ],
@@ -145,11 +143,11 @@ export const STAGES: StageDef[] = [
       { type: "walker", x: 8200 },
     ],
     pickups: [
-      { kind: "weapon", weapon: "flame", x: 420 },
+      { kind: "weapon", x: 420 },
       { kind: "health", x: 1300 },
       { kind: "bomb", x: 2500 },
       { kind: "score", value: 300, x: 3600 },
-      { kind: "weapon", weapon: "flame", x: 5000 },
+      { kind: "weapon", x: 5000 },
       { kind: "health", x: 6200 },
       { kind: "bomb", x: 7400 },
       { kind: "score", value: 500, x: 8200 },
@@ -189,7 +187,7 @@ export const STAGES: StageDef[] = [
     pickups: [
       { kind: "bomb", x: 320 },
       { kind: "health", x: 1500 },
-      { kind: "weapon", weapon: "flame", x: 3000 },
+      { kind: "weapon", x: 3000 },
       { kind: "health", x: 4200 },
     ],
     boss: true,

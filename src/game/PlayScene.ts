@@ -2,6 +2,7 @@ import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
 import type { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
+import { CHARACTERS, type Character, type CharacterId } from "./characters";
 import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
 import { Level } from "./Level";
 import { Particles } from "./Particles";
@@ -12,7 +13,7 @@ import { type EnemyKind, type PickupDef, type StageDef, STAGES } from "./stages"
 import { TitleScene } from "./TitleScene";
 
 const CLEAR_BONUS = 500;
-const DEFAULT_LIVES = 3;
+export const DEFAULT_LIVES = 3;
 const BOMB_DAMAGE = 8;
 
 type State = "playing" | "won" | "lost" | "complete";
@@ -20,6 +21,7 @@ type State = "playing" | "won" | "lost" | "complete";
 /** The main run-and-gun gameplay: clear the stage, survive, beat the boss. */
 export class PlayScene implements Scene {
   private readonly stageDef: StageDef;
+  private readonly character: Character;
   private level!: Level;
   private camera!: Camera;
   private player!: Player;
@@ -40,8 +42,10 @@ export class PlayScene implements Scene {
     private readonly stageIndex: number,
     private readonly startScore: number,
     private readonly startLives = DEFAULT_LIVES,
+    private readonly characterId: CharacterId = "A",
   ) {
     this.stageDef = STAGES[Math.min(stageIndex, STAGES.length - 1)];
+    this.character = CHARACTERS[characterId];
     this.reset();
   }
 
@@ -57,7 +61,7 @@ export class PlayScene implements Scene {
   private reset(): void {
     this.level = new Level(this.stageDef, this.viewHeight);
     this.camera = new Camera(this.viewWidth, this.level.width);
-    this.player = new Player(120, this.level.groundY - 44);
+    this.player = new Player(120, this.level.groundY - 44, this.character);
     this.enemies = this.stageDef.enemies.map((e) => this.createEnemy(e.type, e.x));
     this.pickups = this.stageDef.pickups.map(
       (p) => new Pickup(p.x, this.level.groundY, toPickupConfig(p)),
@@ -113,7 +117,14 @@ export class PlayScene implements Scene {
     this.player.update(dt, input, this.level, this.playerBullets, sound);
 
     if (input.wasPressed("KeyK") && this.player.consumeBomb()) {
-      this.detonateBomb();
+      const bomb = this.player.bomb;
+      if (bomb.kind === "blast") {
+        this.detonateBomb();
+      } else {
+        this.player.fireBombShotgun(this.playerBullets, bomb.shot);
+        sound.shoot("dark");
+        this.camera.shake(8);
+      }
     }
 
     const ctx: EnemyContext = {
@@ -162,6 +173,7 @@ export class PlayScene implements Scene {
         game.changeScene(
           new PlayScene(
             this.viewWidth, this.viewHeight, this.stageIndex + 1, this.score, this.lives,
+            this.characterId,
           ),
         );
       }
@@ -173,7 +185,7 @@ export class PlayScene implements Scene {
       const index = this.state === "complete" ? 0 : this.stageIndex;
       const score = this.state === "complete" ? 0 : this.startScore;
       game.changeScene(
-        new PlayScene(this.viewWidth, this.viewHeight, index, score, DEFAULT_LIVES),
+        new PlayScene(this.viewWidth, this.viewHeight, index, score, DEFAULT_LIVES, this.characterId),
       );
     } else if (input.wasPressed("KeyT")) {
       game.changeScene(new TitleScene());
@@ -191,9 +203,16 @@ export class PlayScene implements Scene {
       }
       for (const e of targets) {
         if (!e.alive || !box.intersects(e.bounds)) continue;
-        if (!b.explosive) this.hurtEnemy(e, b.damage);
-        this.onBulletImpact(b);
-        break;
+        if (b.pierce) {
+          if (b.hitTargets.has(e)) continue;
+          b.hitTargets.add(e);
+          this.hurtEnemy(e, b.damage);
+          this.particles.burst(e.center, "#c4b5fd", 4, 160, { life: 0.2, size: 2, gravity: 0 });
+        } else {
+          this.hurtEnemy(e, b.damage);
+          this.onBulletImpact(b);
+          break;
+        }
       }
     }
   }
@@ -288,7 +307,7 @@ export class PlayScene implements Scene {
     for (const p of this.pickups) {
       if (!p.alive || !box.intersects(p.bounds)) continue;
       const c = p.config;
-      if (c.kind === "weapon") this.player.pickupWeapon(c.weapon);
+      if (c.kind === "weapon") this.player.pickupSpecial();
       else if (c.kind === "health") this.player.heal(1);
       else if (c.kind === "bomb") this.player.addBomb();
       else this.score += c.value;
@@ -451,6 +470,10 @@ export class PlayScene implements Scene {
     ctx.font = "20px system-ui, sans-serif";
     ctx.fillText(`SCORE ${this.score}`, 16, 60);
 
+    ctx.fillStyle = this.character.accent;
+    ctx.font = "13px system-ui, sans-serif";
+    ctx.fillText(`${this.character.name}・${this.character.attribute}`, 16, 80);
+
     ctx.textAlign = "center";
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "16px system-ui, sans-serif";
@@ -530,7 +553,7 @@ export class PlayScene implements Scene {
 }
 
 function toPickupConfig(def: PickupDef): PickupConfig {
-  if (def.kind === "weapon") return { kind: "weapon", weapon: def.weapon };
+  if (def.kind === "weapon") return { kind: "weapon" };
   if (def.kind === "health") return { kind: "health" };
   if (def.kind === "bomb") return { kind: "bomb" };
   return { kind: "score", value: def.value };
@@ -538,7 +561,7 @@ function toPickupConfig(def: PickupDef): PickupConfig {
 
 function rollDrop(): PickupConfig | null {
   const r = Math.random();
-  if (r < 0.1) return { kind: "weapon", weapon: "flame" };
+  if (r < 0.1) return { kind: "weapon" };
   if (r < 0.16) return { kind: "bomb" };
   if (r < 0.24) return { kind: "health" };
   if (r < 0.34) return { kind: "score", value: 200 };

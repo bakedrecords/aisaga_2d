@@ -1,11 +1,10 @@
 import { Rect } from "../engine/Rect";
-import { WEAPONS, type WeaponId } from "./weapons";
 
 const WIDTH = 28;
 const HEIGHT = 24;
 
 export type PickupConfig =
-  | { kind: "weapon"; weapon: WeaponId }
+  | { kind: "weapon" } // grants the character's special weapon
   | { kind: "health" }
   | { kind: "bomb" }
   | { kind: "score"; value: number };
@@ -34,19 +33,21 @@ export class Pickup {
   }
 
   private get color(): string {
-    const c = this.config;
-    if (c.kind === "weapon") return WEAPONS[c.weapon].color;
-    if (c.kind === "health") return "#4ade80";
-    if (c.kind === "bomb") return "#fbbf24";
-    return "#38bdf8";
+    switch (this.config.kind) {
+      case "weapon": return "#fb923c";
+      case "health": return "#4ade80";
+      case "bomb": return "#fbbf24";
+      default: return "#38bdf8";
+    }
   }
 
   private get label(): string {
-    const c = this.config;
-    if (c.kind === "weapon") return c.weapon.charAt(0).toUpperCase();
-    if (c.kind === "health") return "+";
-    if (c.kind === "bomb") return "B";
-    return "$";
+    switch (this.config.kind) {
+      case "weapon": return "W";
+      case "health": return "+";
+      case "bomb": return "B";
+      default: return "$";
+    }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
