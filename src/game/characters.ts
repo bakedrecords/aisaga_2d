@@ -1,6 +1,6 @@
 import type { BulletStyle } from "./Bullet";
 
-export type CharacterId = "A" | "B" | "C";
+export type CharacterId = "A" | "B" | "C" | "D" | "E";
 
 /** Stats for a single gun weapon (the main attack or a pickup special). */
 export interface WeaponSpec {
@@ -17,13 +17,17 @@ export interface WeaponSpec {
   pierce?: boolean;
   style?: BulletStyle;
   extraUp?: boolean; // also fire one shot straight up (twin attack)
+  /** Melee instead of a projectile: a forward arc. */
+  melee?: { arc: number; range: number };
 }
 
 /** The bomb ability differs per character. */
 export type Bomb =
   | { kind: "blast" } // strong blast centered on the player
   | { kind: "shotgun"; shot: WeaponSpec } // long-range forward shots
-  | { kind: "heal"; amount: number }; // restore HP instead of attacking
+  | { kind: "heal"; amount: number } // restore HP instead of attacking
+  | { kind: "timestop"; duration: number } // freeze enemies and their shots
+  | { kind: "dash"; damage: number }; // invincible forward charge
 
 export interface Character {
   id: CharacterId;
@@ -95,6 +99,43 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     bomb: { kind: "heal", amount: 2 },
     airJumps: 1,
   },
+  D: {
+    id: "D",
+    name: "D",
+    attribute: "時空",
+    bodyColor: "#22d3ee",
+    accent: "#67e8f9",
+    // Same gun as A.
+    normal: {
+      name: "GUN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
+      damage: 1, radius: 4, color: "#fde047", range: 440, ammo: 0,
+    },
+    // The machine gun, revived for this character.
+    special: {
+      name: "M.GUN", fireDelay: 0.07, pellets: 1, spread: 0.08, speed: 780,
+      damage: 1, radius: 3, color: "#67e8f9", range: 540, ammo: 140,
+    },
+    bomb: { kind: "timestop", duration: 3 },
+  },
+  E: {
+    id: "E",
+    name: "E",
+    attribute: "物理",
+    bodyColor: "#cbd5e1",
+    accent: "#94a3b8",
+    // Close-range katana: a 90° forward arc at double normal damage.
+    normal: {
+      name: "KATANA", fireDelay: 0.3, pellets: 0, spread: 0, speed: 0,
+      damage: 2, radius: 0, color: "#e2e8f0", range: 0, ammo: 0,
+      melee: { arc: Math.PI / 2, range: 66 },
+    },
+    // Shuriken: a ranged shot as strong as A's normal attack.
+    special: {
+      name: "SHURIKEN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
+      damage: 1, radius: 4, color: "#e2e8f0", range: 440, ammo: 24,
+    },
+    bomb: { kind: "dash", damage: 10 },
+  },
 };
 
-export const CHARACTER_ORDER: CharacterId[] = ["A", "B", "C"];
+export const CHARACTER_ORDER: CharacterId[] = ["A", "B", "C", "D", "E"];

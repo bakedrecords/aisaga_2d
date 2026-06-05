@@ -7,7 +7,7 @@ import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } fr
 import { Level } from "./Level";
 import { Particles } from "./Particles";
 import { Pickup, type PickupConfig } from "./Pickup";
-import { Player } from "./Player";
+import { type MeleeHit, Player } from "./Player";
 import { sound } from "./Sound";
 import { type EnemyKind, type PickupDef, type StageDef, STAGES } from "./stages";
 import { TitleScene } from "./TitleScene";
@@ -32,6 +32,9 @@ export class PlayScene implements Scene {
   private pickups: Pickup[] = [];
   private particles = new Particles();
   private bombFlash = 0;
+  private timeStop = 0;
+  private dashDamage = 0;
+  private dashHits = new Set<unknown>();
   private score = 0;
   private lives = DEFAULT_LIVES;
   private state: State = "playing";
@@ -92,6 +95,7 @@ export class PlayScene implements Scene {
     this.enemyBullets = [];
     this.particles = new Particles();
     this.bombFlash = 0;
+    this.timeStop = 0;
     this.camera.follow(this.player.centerX);
   }
 
@@ -124,14 +128,30 @@ export class PlayScene implements Scene {
         this.player.fireBombShotgun(this.playerBullets, bomb.shot);
         sound.shoot("dark");
         this.camera.shake(8);
-      } else {
+      } else if (bomb.kind === "heal") {
         this.player.heal(bomb.amount);
         this.particles.burst(this.player.center, "#86efac", 24, 220, {
           life: 0.6, size: 4, gravity: -60,
         });
         sound.pickup();
+      } else if (bomb.kind === "timestop") {
+        this.timeStop = bomb.duration;
+        sound.explosion();
+      } else {
+        this.player.startDash();
+        this.dashDamage = bomb.damage;
+        this.dashHits = new Set();
+        sound.explosion();
+        this.camera.shake(8);
       }
     }
+
+    const melee = this.player.takeMelee();
+    if (melee) this.applyMelee(melee);
+    if (this.player.isDashing) this.applyDash();
+
+    const frozen = this.timeStop > 0;
+    if (this.timeStop > 0) this.timeStop -= dt;
 
     const ctx: EnemyContext = {
       dt,
@@ -140,29 +160,33 @@ export class PlayScene implements Scene {
       fire: (b) => this.enemyBullets.push(b),
       audio: sound,
     };
-    // Enemies (and the boss) only think while the player is nearby, so placed
-    // encounters trigger as you reach them instead of swarming from afar.
+    // Enemies (and the boss) only think while the player is nearby — and not
+    // while time is stopped.
     const range = this.activationRange;
-    for (const e of this.enemies) {
-      if (Math.abs(e.center.x - this.player.centerX) <= range) e.update(ctx);
-    }
-    if (
-      this.boss &&
-      this.boss.alive &&
-      Math.abs(this.boss.center.x - this.player.centerX) <= range
-    ) {
-      this.boss.update(ctx);
+    if (!frozen) {
+      for (const e of this.enemies) {
+        if (Math.abs(e.center.x - this.player.centerX) <= range) e.update(ctx);
+      }
+      if (
+        this.boss &&
+        this.boss.alive &&
+        Math.abs(this.boss.center.x - this.player.centerX) <= range
+      ) {
+        this.boss.update(ctx);
+      }
+      for (const b of this.enemyBullets) b.update(dt);
     }
 
     for (const b of this.playerBullets) b.update(dt);
-    for (const b of this.enemyBullets) b.update(dt);
     for (const p of this.pickups) p.update(dt);
     this.particles.update(dt);
     if (this.bombFlash > 0) this.bombFlash -= dt;
 
     this.handlePlayerBullets();
-    this.handleEnemyBullets();
-    this.handleContact();
+    if (!frozen) {
+      this.handleEnemyBullets();
+      this.handleContact();
+    }
     this.handleSpikes();
     this.handlePickups();
     this.cull();
@@ -243,6 +267,39 @@ export class PlayScene implements Scene {
     sound.explosion();
     this.camera.shake(30);
     this.bombFlash = 0.18;
+  }
+
+  /** Apply a melee swing (a forward arc) to enemies in range. */
+  private applyMelee(m: MeleeHit): void {
+    const half = m.arc / 2;
+    let hit = false;
+    for (const e of this.targets()) {
+      if (!e.alive) continue;
+      const ec = e.center;
+      const dx = ec.x - m.x;
+      const dy = ec.y - m.y;
+      if (Math.hypot(dx, dy) > m.range) continue;
+      const forward = dx * m.facing;
+      if (forward <= 0 || Math.atan2(Math.abs(dy), forward) > half) continue;
+      this.hurtEnemy(e, m.damage);
+      this.particles.burst(ec, "#f1f5f9", 8, 200, { life: 0.25, size: 3 });
+      hit = true;
+    }
+    if (hit) this.camera.shake(4);
+  }
+
+  /** Damage enemies the player ploughs through during a dash. */
+  private applyDash(): void {
+    const box = this.player.bounds;
+    for (const e of this.targets()) {
+      if (!e.alive || this.dashHits.has(e) || !box.intersects(e.bounds)) continue;
+      this.dashHits.add(e);
+      this.hurtEnemy(e, this.dashDamage);
+      this.particles.burst(e.center, "#e2e8f0", 12, 260, { life: 0.3, size: 3 });
+    }
+    this.particles.burst(this.player.center, this.character.accent, 2, 60, {
+      life: 0.2, size: 3, gravity: 0,
+    });
   }
 
   private hurtEnemy(e: Enemy, damage: number): void {
@@ -385,6 +442,16 @@ export class PlayScene implements Scene {
     if (this.bombFlash > 0) {
       ctx.fillStyle = `rgba(253, 230, 138, ${Math.min(0.5, this.bombFlash * 2.6)})`;
       ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+    }
+
+    if (this.timeStop > 0) {
+      ctx.fillStyle = "rgba(34, 211, 238, 0.12)";
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "bold 22px system-ui, sans-serif";
+      ctx.fillText("TIME STOP", this.viewWidth / 2, 104);
+      ctx.textAlign = "left";
     }
 
     this.drawHud(ctx);

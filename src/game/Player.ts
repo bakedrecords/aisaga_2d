@@ -16,10 +16,23 @@ const MAX_HP = 5;
 const HIT_INVULN = 1.2;
 const RESPAWN_INVULN = 2;
 const MAX_BOMBS = 3;
+const DASH_SPEED = 560;
+const DASH_TIME = 0.3;
+const SLASH_TIME = 0.12;
 
 const UP_KEYS = ["ArrowUp", "KeyW"];
 const DOWN_KEYS = ["ArrowDown", "KeyS"];
 const FIRE_KEYS = ["KeyJ", "KeyZ"];
+
+/** A melee swing request, applied to enemies by the scene. */
+export interface MeleeHit {
+  x: number;
+  y: number;
+  facing: number;
+  range: number;
+  arc: number;
+  damage: number;
+}
 
 /** The player. Movement is shared; weapons/bomb come from the chosen Character. */
 export class Player {
@@ -33,6 +46,9 @@ export class Player {
   private fireCooldown = 0;
   private invuln = 0;
   private jumpsUsed = 0;
+  private slashTimer = 0;
+  private dashTimer = 0;
+  private pendingMelee: MeleeHit | null = null;
   private special = false; // using the pickup weapon instead of the main attack
   private ammo = 0;
 
@@ -85,6 +101,7 @@ export class Player {
 
   update(dt: number, input: Input, level: Level, bullets: Bullet[], audio: Sound): void {
     if (this.invuln > 0) this.invuln -= dt;
+    if (this.slashTimer > 0) this.slashTimer -= dt;
 
     this.crouching = this.onGround && DOWN_KEYS.some((k) => input.isDown(k));
 
@@ -101,6 +118,12 @@ export class Player {
     }
 
     this.vy += GRAVITY * dt;
+
+    if (this.dashTimer > 0) {
+      this.dashTimer -= dt;
+      this.vx = this.facing * DASH_SPEED;
+      this.vy = 0; // a flat horizontal lunge
+    }
 
     this.x += this.vx * dt;
     this.resolveHorizontal(level);
@@ -170,7 +193,17 @@ export class Player {
 
     const spec = this.special ? this.character.special : this.character.normal;
 
-    if (spec.extraUp) {
+    if (spec.melee) {
+      this.pendingMelee = {
+        x: this.centerX,
+        y: this.y + STAND_H / 2,
+        facing: this.facing,
+        range: spec.melee.range,
+        arc: spec.melee.arc,
+        damage: spec.damage,
+      };
+      this.slashTimer = SLASH_TIME;
+    } else if (spec.extraUp) {
       // Fire forward (facing) and straight up at the same time.
       const forward = this.facing > 0 ? 0 : Math.PI;
       const muzzle = new Vector2(this.centerX + this.facing * 18, this.gunY());
@@ -191,7 +224,7 @@ export class Player {
     }
 
     this.fireCooldown = spec.fireDelay;
-    audio.shoot(spec.style ?? "gun");
+    audio.shoot(spec.melee ? "slash" : spec.style ?? "gun");
 
     if (this.special) {
       this.ammo -= 1;
@@ -228,9 +261,25 @@ export class Player {
   }
 
   hit(): void {
-    if (this.invuln > 0) return;
+    if (this.invuln > 0 || this.dashTimer > 0) return;
     this.hp -= 1;
     this.invuln = HIT_INVULN;
+  }
+
+  /** Consume this frame's melee swing (applied to enemies by the scene). */
+  takeMelee(): MeleeHit | null {
+    const m = this.pendingMelee;
+    this.pendingMelee = null;
+    return m;
+  }
+
+  startDash(): void {
+    this.dashTimer = DASH_TIME;
+    this.vy = 0;
+  }
+
+  get isDashing(): boolean {
+    return this.dashTimer > 0;
   }
 
   heal(amount: number): void {
@@ -256,6 +305,9 @@ export class Player {
     this.invuln = RESPAWN_INVULN;
     this.crouching = false;
     this.jumpsUsed = 0;
+    this.slashTimer = 0;
+    this.dashTimer = 0;
+    this.pendingMelee = null;
     this.special = false;
     this.ammo = 0;
     this.bombs = 1;
@@ -273,5 +325,22 @@ export class Player {
     const gy = this.gunY();
     if (this.facing > 0) ctx.fillRect(this.x + WIDTH, gy - 2, 12, 5);
     else ctx.fillRect(this.x - 12, gy - 2, 12, 5);
+
+    if (this.slashTimer > 0 && this.character.normal.melee) {
+      this.drawSlash(ctx, this.character.normal.melee.range);
+    }
+  }
+
+  private drawSlash(ctx: CanvasRenderingContext2D, range: number): void {
+    const cx = this.centerX;
+    const cy = this.y + STAND_H / 2;
+    const start = this.facing > 0 ? -Math.PI / 4 : (Math.PI * 3) / 4;
+    const end = this.facing > 0 ? Math.PI / 4 : (Math.PI * 5) / 4;
+    ctx.fillStyle = "rgba(241, 245, 249, 0.45)";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, range, start, end);
+    ctx.closePath();
+    ctx.fill();
   }
 }
