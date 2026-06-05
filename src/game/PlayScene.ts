@@ -31,7 +31,6 @@ export class PlayScene implements Scene {
   private enemyBullets: Bullet[] = [];
   private pickups: Pickup[] = [];
   private particles = new Particles();
-  private spawnTimer = 0;
   private score = 0;
   private lives = DEFAULT_LIVES;
   private state: State = "playing";
@@ -51,6 +50,11 @@ export class PlayScene implements Scene {
     return this.stageIndex >= STAGES.length - 1;
   }
 
+  /** Enemies/boss within this horizontal distance of the player are active. */
+  private get activationRange(): number {
+    return this.viewWidth * 1.3;
+  }
+
   private reset(): void {
     this.level = new Level(this.stageDef, this.viewHeight);
     this.camera = new Camera(this.viewWidth, this.level.width);
@@ -65,7 +69,6 @@ export class PlayScene implements Scene {
     this.playerBullets = [];
     this.enemyBullets = [];
     this.particles = new Particles();
-    this.spawnTimer = this.stageDef.spawnInterval;
     this.score = this.startScore;
     this.lives = this.startLives;
     this.state = "playing";
@@ -100,8 +103,19 @@ export class PlayScene implements Scene {
       fire: (b) => this.enemyBullets.push(b),
       audio: sound,
     };
-    for (const e of this.enemies) e.update(ctx);
-    if (this.boss && this.boss.alive) this.boss.update(ctx);
+    // Enemies (and the boss) only think while the player is nearby, so placed
+    // encounters trigger as you reach them instead of swarming from afar.
+    const range = this.activationRange;
+    for (const e of this.enemies) {
+      if (Math.abs(e.center.x - this.player.centerX) <= range) e.update(ctx);
+    }
+    if (
+      this.boss &&
+      this.boss.alive &&
+      Math.abs(this.boss.center.x - this.player.centerX) <= range
+    ) {
+      this.boss.update(ctx);
+    }
 
     for (const b of this.playerBullets) b.update(dt);
     for (const b of this.enemyBullets) b.update(dt);
@@ -113,7 +127,6 @@ export class PlayScene implements Scene {
     this.handleContact();
     this.handleSpikes();
     this.handlePickups();
-    this.spawnEnemies(dt);
     this.cull();
 
     this.camera.follow(this.player.centerX);
@@ -261,18 +274,6 @@ export class PlayScene implements Scene {
     }
   }
 
-  private spawnEnemies(dt: number): void {
-    this.spawnTimer -= dt;
-    const live = this.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
-    if (this.spawnTimer > 0 || live >= this.stageDef.maxEnemies) return;
-    this.spawnTimer = this.stageDef.spawnInterval;
-    const kinds = this.stageDef.spawnTypes;
-    const kind = kinds[Math.floor(Math.random() * kinds.length)] ?? "walker";
-    const limit = this.level.isBossStage ? this.level.width - 80 : this.level.goalX - 60;
-    const spawnX = Math.min(this.player.centerX + this.viewWidth * 0.8, limit);
-    this.enemies.push(this.createEnemy(kind, spawnX));
-  }
-
   private cull(): void {
     this.playerBullets = this.playerBullets.filter((b) => b.alive && this.inWorld(b));
     this.enemyBullets = this.enemyBullets.filter((b) => b.alive && this.inWorld(b));
@@ -338,7 +339,13 @@ export class PlayScene implements Scene {
     ctx.restore();
 
     this.drawHud(ctx);
-    if (this.boss && this.boss.alive) this.drawBossBar(ctx);
+    if (
+      this.boss &&
+      this.boss.alive &&
+      Math.abs(this.boss.center.x - this.player.centerX) <= this.activationRange
+    ) {
+      this.drawBossBar(ctx);
+    }
     this.drawBanner(ctx);
   }
 
