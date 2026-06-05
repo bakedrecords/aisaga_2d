@@ -6,9 +6,12 @@ export interface BulletOptions {
   damage?: number;
   explosive?: boolean;
   color?: string;
+  /** Max travel distance (px) before the bullet despawns. */
+  range?: number;
 }
 
-/** A projectile flying along a velocity vector until it hits something. */
+/** A projectile flying along a velocity vector until it hits something or
+ *  reaches its range. */
 export class Bullet {
   pos: Vector2;
   private readonly vel: Vector2;
@@ -16,6 +19,8 @@ export class Bullet {
   readonly damage: number;
   readonly explosive: boolean;
   private readonly color: string;
+  private readonly range: number;
+  private traveled = 0;
   alive = true;
 
   constructor(pos: Vector2, vel: Vector2, opts: BulletOptions = {}) {
@@ -25,10 +30,14 @@ export class Bullet {
     this.damage = opts.damage ?? 1;
     this.explosive = opts.explosive ?? false;
     this.color = opts.color ?? "#fde047";
+    this.range = opts.range ?? 600;
   }
 
   update(dt: number): void {
-    this.pos = this.pos.add(this.vel.scale(dt));
+    const step = this.vel.scale(dt);
+    this.pos = this.pos.add(step);
+    this.traveled += step.length;
+    if (this.traveled >= this.range) this.alive = false;
   }
 
   get bounds(): Rect {

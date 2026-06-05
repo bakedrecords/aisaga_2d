@@ -141,6 +141,7 @@ export class Shooter extends Enemy {
         new Bullet(this.center, dir.scale(Shooter.BULLET_SPEED), {
           color: "#fca5a5",
           radius: 5,
+          range: 520,
         }),
       );
       ctx.audio.enemyShoot();
@@ -265,6 +266,7 @@ export class Boss extends Enemy {
         new Bullet(this.center, new Vector2(Math.cos(angle), Math.sin(angle)).scale(speed), {
           color: "#fb7185",
           radius: 6,
+          range: 640,
         }),
       );
 

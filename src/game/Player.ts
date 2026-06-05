@@ -171,6 +171,7 @@ export class Player {
           damage: spec.damage,
           explosive: spec.explosive,
           color: spec.color,
+          range: spec.range,
         }),
       );
     }
