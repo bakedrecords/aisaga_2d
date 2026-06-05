@@ -1,0 +1,607 @@
+/* ===== テーマ（CSS変数, 仕様 §7.0）===== */
+:root {
+  --bg: #f6f1e8;
+  --surface: #fffdf8;
+  --surface-2: #f3ead9;
+  --ink: #3a2c1f;
+  --muted: #8a7a68;
+  --line: #e6dccb;
+  --line-strong: #d8c9af;
+  --accent: #bd6a2c;
+  --accent-dark: #9c531d;
+  --accent-soft: #f4e3d2;
+
+  --good: #2e7d32;
+  --good-bg: #e6f1e6;
+  --warn: #b9701a;
+  --warn-bg: #f8ecd9;
+  --bad: #c0392b;
+  --bad-bg: #f7e3e0;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(58, 44, 31, 0.08), 0 6px 18px rgba(58, 44, 31, 0.06);
+  --font: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP',
+    'Segoe UI', Meiryo, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ===== レイアウト ===== */
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-mark {
+  font-size: 32px;
+  line-height: 1;
+}
+.brand-text h1 {
+  font-size: 20px;
+  color: var(--accent-dark);
+}
+.brand-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* データ管理ボタン群 */
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.data-actions button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, opacity 0.15s;
+}
+.data-actions button:hover {
+  background: var(--accent-dark);
+}
+.data-actions button.ghost {
+  background: transparent;
+  color: var(--accent-dark);
+}
+.data-actions button.ghost:hover {
+  background: var(--accent-soft);
+}
+.data-actions button.ghost.danger {
+  border-color: var(--line-strong);
+  color: var(--bad);
+}
+.data-actions button.ghost.danger:hover {
+  background: var(--bad-bg);
+}
+
+/* ===== タブ ===== */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.tab {
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tab.active {
+  background: var(--surface);
+  color: var(--accent-dark);
+  box-shadow: var(--shadow);
+}
+
+/* ===== ページ共通 ===== */
+.content {
+  min-height: 50vh;
+}
+.page-head {
+  margin-bottom: 16px;
+}
+.page-head h2 {
+  font-size: 18px;
+  color: var(--ink);
+}
+.hint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.hint strong {
+  color: var(--accent-dark);
+}
+
+/* ===== テーブル ===== */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.grid thead th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  padding: 10px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+.grid th.num,
+.grid td.num {
+  text-align: right;
+}
+.grid tbody td,
+.grid tfoot td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.grid tbody tr:last-child td {
+  border-bottom: none;
+}
+.th-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.grid input,
+.grid select {
+  width: 100%;
+  min-width: 60px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+.grid input:focus,
+.grid select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.grid td.num input {
+  text-align: right;
+}
+
+.strong {
+  font-weight: 700;
+  color: var(--accent-dark);
+  white-space: nowrap;
+}
+.muted {
+  color: var(--muted);
+}
+.unit-suffix {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 18px 10px;
+  font-size: 13px;
+}
+.row-actions {
+  text-align: center;
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* 数値＋単位サフィックス */
+.with-suffix {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.with-suffix input {
+  text-align: right;
+}
+.with-suffix em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+/* アイコンボタン（削除など） */
+.icon {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+}
+.icon.danger:hover {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+/* 追加ボタン群 */
+.add {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.new-row td {
+  background: var(--surface-2);
+}
+.link-add {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--accent-dark);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+.link-add:hover {
+  background: var(--accent-soft);
+}
+.big-add {
+  display: block;
+  width: 100%;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border-radius: var(--radius);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 16px;
+}
+.big-add:hover {
+  background: #efdcc6;
+}
+
+/* ===== カード（生地・フィリング・商品）===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.card-title {
+  flex: 1 1 auto;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  padding: 4px 2px;
+}
+.card-title:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+.note {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* サマリ（生地・フィリング）/ メトリクス（商品）*/
+.summary,
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.summary > div,
+.metric {
+  flex: 1 1 130px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.summary > div span,
+.metric span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.summary > div b,
+.metric b {
+  font-size: 16px;
+  font-weight: 700;
+}
+.summary .highlight {
+  background: var(--accent-soft);
+}
+.summary .highlight b {
+  color: var(--accent-dark);
+}
+.inline-num {
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  width: 100%;
+  text-align: right;
+}
+
+/* 原価率の色分け（〜30%緑 / 〜40%橙 / 40%超 赤）*/
+.rate-good {
+  background: var(--good-bg) !important;
+  color: var(--good);
+}
+.rate-warn {
+  background: var(--warn-bg) !important;
+  color: var(--warn);
+}
+.rate-bad {
+  background: var(--bad-bg) !important;
+  color: var(--bad);
+}
+.metric.rate-good b,
+.metric.rate-warn b,
+.metric.rate-bad b {
+  color: inherit;
+}
+td.rate-good,
+td.rate-warn,
+td.rate-bad {
+  font-weight: 700;
+}
+
+/* ===== 一覧比較 ===== */
+.compare .sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.compare .sortable:hover {
+  color: var(--accent-dark);
+}
+.sort-arrow {
+  color: var(--accent);
+}
+.compare tfoot td {
+  background: var(--surface-2);
+  font-weight: 700;
+  border-top: 2px solid var(--line-strong);
+}
+.foot-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+}
+
+/* ===== フッター ===== */
+.app-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.app-footer p {
+  margin: 0;
+}
+
+/* ===== トースト通知 ===== */
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.toast {
+  text-align: left;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.18s ease-out;
+}
+.toast.success {
+  border-left-color: var(--good);
+}
+.toast.error {
+  border-left-color: var(--bad);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== モバイル: 編集グリッドはカード状に縦積み（一覧比較は横スクロール）===== */
+@media (max-width: 600px) {
+  .app {
+    padding: 0 10px 32px;
+  }
+  .data-actions button {
+    flex: 1 1 auto;
+  }
+
+  .grid:not(.compare) thead {
+    display: none;
+  }
+  .grid:not(.compare),
+  .grid:not(.compare) tbody,
+  .grid:not(.compare) tfoot,
+  .grid:not(.compare) tr,
+  .grid:not(.compare) td {
+    display: block;
+    width: 100%;
+  }
+  .grid:not(.compare) tr {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    margin: 0 0 10px;
+    padding: 4px;
+  }
+  .grid:not(.compare) tbody tr:last-child td {
+    border-bottom: 1px solid var(--line);
+  }
+  .grid:not(.compare) td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    padding: 8px;
+  }
+  .grid:not(.compare) tr td:last-child {
+    border-bottom: none;
+  }
+  .grid:not(.compare) td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .grid:not(.compare) td.num {
+    text-align: right;
+  }
+  .grid:not(.compare) td input,
+  .grid:not(.compare) td select {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 60%;
+  }
+  .grid:not(.compare) td.row-actions {
+    justify-content: flex-end;
+  }
+  .grid:not(.compare) td.row-actions::before,
+  .grid:not(.compare) td.empty::before {
+    content: '';
+  }
+  .grid:not(.compare) td.empty {
+    justify-content: center;
+  }
+
+  /* 一覧比較は横スクロールで列を維持 */
+  .compare {
+    min-width: 560px;
+  }
+}
