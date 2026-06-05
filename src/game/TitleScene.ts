@@ -6,9 +6,9 @@ import { sound } from "./Sound";
 const START_KEYS = ["Space", "KeyJ", "Enter"];
 
 const ITEMS: { label: string; color: string; text: string }[] = [
-  { label: "F", color: "#fb923c", text: "炎（火炎放射・近距離）" },
+  { label: "F", color: "#fb923c", text: "炎（拡散・前方広範囲）" },
   { label: "B", color: "#fbbf24", text: "ボム（自分中心の大範囲・別ボタン K）" },
-  { label: "+", color: "#4ade80", text: "回復（HP+2）" },
+  { label: "+", color: "#4ade80", text: "回復（HP+1）" },
   { label: "$", color: "#38bdf8", text: "スコアボーナス" },
 ];
 

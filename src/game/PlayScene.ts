@@ -273,7 +273,7 @@ export class PlayScene implements Scene {
       if (!p.alive || !box.intersects(p.bounds)) continue;
       const c = p.config;
       if (c.kind === "weapon") this.player.pickupWeapon(c.weapon);
-      else if (c.kind === "health") this.player.heal(2);
+      else if (c.kind === "health") this.player.heal(1);
       else if (c.kind === "bomb") this.player.addBomb();
       else this.score += c.value;
       sound.pickup();

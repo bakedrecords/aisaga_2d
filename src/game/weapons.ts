@@ -23,10 +23,10 @@ export const WEAPONS: Record<WeaponId, Weapon> = {
     id: "pistol", name: "PISTOL", fireDelay: 0.16, pellets: 1, spread: 0,
     speed: 680, damage: 1, explosive: false, radius: 4, color: "#fde047", range: 440, ammo: 0,
   },
-  // Fire: a fast, strong single strike (not a continuous spray).
+  // Fire: a short burst of fireballs in a wide forward arc (only a few shots).
   flame: {
-    id: "flame", name: "FIRE", fireDelay: 0.22, pellets: 1, spread: 0,
-    speed: 720, damage: 3, explosive: false, radius: 9, color: "#fb923c", range: 340, ammo: 24,
+    id: "flame", name: "FIRE", fireDelay: 0.25, pellets: 6, spread: 0.85,
+    speed: 600, damage: 2, explosive: false, radius: 7, color: "#fb923c", range: 230, ammo: 6,
   },
 };
 
