@@ -236,7 +236,8 @@ export class PlayScene implements Scene {
     for (const b of this.playerBullets) {
       if (!b.alive) continue;
       const box = b.bounds;
-      if (this.level.solids.some((s) => box.intersects(s))) {
+      // Piercing shots (e.g. B's laser) pass through terrain too.
+      if (!b.pierce && this.level.solids.some((s) => box.intersects(s))) {
         this.onBulletImpact(b);
         continue;
       }
@@ -287,10 +288,14 @@ export class PlayScene implements Scene {
       const ec = e.center;
       const dx = ec.x - m.x;
       const dy = ec.y - m.y;
-      if (Math.hypot(dx, dy) > m.range) continue;
-      const ang = Math.atan2(dy, dx);
-      const diff = Math.abs(Math.atan2(Math.sin(ang - m.angle), Math.cos(ang - m.angle)));
-      if (diff > half) continue;
+      const dist = Math.hypot(dx, dy);
+      if (dist > m.range) continue;
+      // Point-blank: skip the angle test so a touching enemy always connects.
+      if (dist > 40) {
+        const ang = Math.atan2(dy, dx);
+        const diff = Math.abs(Math.atan2(Math.sin(ang - m.angle), Math.cos(ang - m.angle)));
+        if (diff > half) continue;
+      }
       this.hurtEnemy(e, m.damage);
       this.particles.burst(ec, "#f1f5f9", 8, 200, { life: 0.25, size: 3 });
       hit = true;

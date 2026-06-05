@@ -210,13 +210,14 @@ export class Player {
       this.slashAngle = angle;
       this.slashTimer = SLASH_TIME;
     } else if (spec.extraUp) {
-      // Fire forward (facing) and straight up at the same time.
+      // Fire forward and diagonally up-forward at the same time.
       const forward = this.facing > 0 ? 0 : Math.PI;
+      const diag = this.facing > 0 ? -Math.PI / 4 : (-3 * Math.PI) / 4;
       const muzzle = new Vector2(this.centerX + this.facing * 18, this.gunY());
-      const fVel = new Vector2(Math.cos(forward), Math.sin(forward)).scale(spec.speed);
-      bullets.push(this.makeBullet(muzzle, fVel, spec));
-      const upMuzzle = new Vector2(this.centerX, this.y);
-      bullets.push(this.makeBullet(upMuzzle, new Vector2(0, -spec.speed), spec));
+      for (const angle of [forward, diag]) {
+        const vel = new Vector2(Math.cos(angle), Math.sin(angle)).scale(spec.speed);
+        bullets.push(this.makeBullet(muzzle, vel, spec));
+      }
     } else {
       const aim = this.aim(input);
       const baseAngle = Math.atan2(aim.y, aim.x);
