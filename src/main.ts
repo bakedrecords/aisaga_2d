@@ -13,6 +13,10 @@ import miasmaSUrl from "./game/assets/miasmaS.png";
 import miasmaLUrl from "./game/assets/miasmaL.png";
 import lightorbUrl from "./game/assets/lightorb.png";
 import shurikenUrl from "./game/assets/shuriken.png";
+import demonUrl from "./game/assets/demonB.png";
+import summonCircleUrl from "./game/assets/summonCircle.png";
+import dashUrl from "./game/assets/dashE.png";
+import shockUrl from "./game/assets/shockE.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -28,6 +32,10 @@ loadSprite("miasmaS", miasmaSUrl);
 loadSprite("miasmaL", miasmaLUrl);
 loadSprite("lightorb", lightorbUrl);
 loadSprite("shuriken", shurikenUrl);
+loadSprite("demonB", demonUrl);
+loadSprite("summonCircle", summonCircleUrl);
+loadSprite("dashE", dashUrl);
+loadSprite("shockE", shockUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {

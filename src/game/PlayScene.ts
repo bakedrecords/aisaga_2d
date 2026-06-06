@@ -17,6 +17,8 @@ const CLEAR_BONUS = 500;
 export const DEFAULT_LIVES = 3;
 const BOMB_DAMAGE = 8;
 const BOMB_FIRE_TIME = 0.55;
+const SUMMON_TIME = 1.0;
+const DASH_SHOCK_TIME = 0.35;
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -35,6 +37,8 @@ export class PlayScene implements Scene {
   private particles = new Particles();
   private bombFlash = 0;
   private bombFire: { cx: number; cy: number; t: number } | null = null;
+  private summonFx: { cx: number; footY: number; t: number } | null = null;
+  private dashShock: { cx: number; cy: number; t: number } | null = null;
   private timeStop = 0;
   private dashDamage = 0;
   private dashHits = new Set<unknown>();
@@ -99,6 +103,8 @@ export class PlayScene implements Scene {
     this.particles = new Particles();
     this.bombFlash = 0;
     this.bombFire = null;
+    this.summonFx = null;
+    this.dashShock = null;
     this.timeStop = 0;
     this.camera.follow(this.player.centerX);
   }
@@ -150,12 +156,16 @@ export class PlayScene implements Scene {
       } else if (bomb.kind === "timestop") {
         this.timeStop = bomb.duration;
         sound.explosion();
+      } else if (bomb.kind === "summon") {
+        this.summonDemon();
       } else {
         this.player.startDash();
         this.dashDamage = bomb.damage;
         this.dashHits = new Set();
         sound.explosion();
-        this.camera.shake(8);
+        this.camera.shake(12);
+        const c = this.player.center;
+        this.dashShock = { cx: c.x, cy: c.y + 18, t: 0 };
       }
     }
 
@@ -197,6 +207,14 @@ export class PlayScene implements Scene {
     if (this.bombFire) {
       this.bombFire.t += dt;
       if (this.bombFire.t >= BOMB_FIRE_TIME) this.bombFire = null;
+    }
+    if (this.summonFx) {
+      this.summonFx.t += dt;
+      if (this.summonFx.t >= SUMMON_TIME) this.summonFx = null;
+    }
+    if (this.dashShock) {
+      this.dashShock.t += dt;
+      if (this.dashShock.t >= DASH_SHOCK_TIME) this.dashShock = null;
     }
 
     this.handlePlayerBullets();
@@ -285,6 +303,22 @@ export class PlayScene implements Scene {
     sound.explosion();
     this.camera.shake(30);
     this.bombFlash = 0.18;
+  }
+
+  /** B's bomb: summon a demon — a screen-wide dark blast under the summon art. */
+  private summonDemon(): void {
+    const c = this.player.center;
+    const radius = Math.hypot(this.viewWidth, this.viewHeight) * 0.55;
+    for (const e of this.targets()) {
+      if (e.alive && e.center.add(c.scale(-1)).length <= radius) {
+        this.hurtEnemy(e, BOMB_DAMAGE);
+      }
+    }
+    this.particles.burst(c, "#a78bfa", 40, 360, { life: 0.7, size: 5, gravity: -40 });
+    this.particles.burst(c, "#6d28d9", 30, 300, { life: 0.7, size: 5, gravity: -10 });
+    this.summonFx = { cx: c.x, footY: c.y + 22, t: 0 };
+    sound.explosion();
+    this.camera.shake(26);
   }
 
   /** Apply a melee swing (a forward arc) to enemies in range. */
@@ -463,8 +497,10 @@ export class PlayScene implements Scene {
     for (const b of this.playerBullets) b.render(ctx);
     for (const b of this.enemyBullets) b.render(ctx);
     this.particles.render(ctx);
+    this.drawDashFx(ctx);
     this.player.render(ctx);
     this.drawBombFire(ctx);
+    this.drawSummon(ctx);
     ctx.restore();
 
     if (this.bombFlash > 0) {
@@ -522,6 +558,70 @@ export class PlayScene implements Scene {
     }
     // Central swelling burst.
     draw(cx, cy, 200 + 280 * ease, 0, 1 - p * 0.8);
+  }
+
+  /** B's summon bomb: a magic circle on the ground with a demon rising above. */
+  private drawSummon(ctx: CanvasRenderingContext2D): void {
+    if (!this.summonFx) return;
+    const { cx, footY, t } = this.summonFx;
+    const p = t / SUMMON_TIME;
+    const circle = getSprite("summonCircle");
+    if (circle) {
+      const { width, height } = circle as unknown as { width: number; height: number };
+      const grow = Math.min(1, p / 0.2);
+      const fade = p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1;
+      const w = 165 * (0.4 + 0.6 * grow), h = w * (height / width);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, fade) * 0.95;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(circle, cx - w / 2, footY - h / 2, w, h);
+      ctx.restore();
+    }
+    const demon = getSprite("demonB");
+    if (demon) {
+      const { width, height } = demon as unknown as { width: number; height: number };
+      const grow = 0.7 + 0.3 * Math.min(1, p / 0.35);
+      const dh = 145 * grow, dw = dh * (width / height);
+      const fadeIn = Math.min(1, p / 0.15);
+      const fadeOut = p > 0.74 ? 1 - (p - 0.74) / 0.26 : 1;
+      const bob = Math.sin(p * Math.PI) * 6;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(fadeIn, fadeOut));
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(demon, cx - dw / 2, footY - dh + 8 - bob, dw, dh);
+      ctx.restore();
+    }
+  }
+
+  /** E's dash bomb: streaks along the charge and a shockwave where it began. */
+  private drawDashFx(ctx: CanvasRenderingContext2D): void {
+    const streak = getSprite("dashE");
+    if (this.player.isDashing && streak) {
+      const c = this.player.center;
+      const { width, height } = streak as unknown as { width: number; height: number };
+      const h = 60, w = h * (width / height);
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.scale(this.player.facingDir, 1);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(streak, -w / 2, -h / 2, w, h);
+      ctx.globalAlpha = 0.4;
+      ctx.drawImage(streak, -w / 2 - 26, -h / 2 + 5, w, h);
+      ctx.restore();
+    }
+    const shock = getSprite("shockE");
+    if (this.dashShock && shock) {
+      const { cx, cy, t } = this.dashShock;
+      const p = t / DASH_SHOCK_TIME;
+      const { width, height } = shock as unknown as { width: number; height: number };
+      const w = 200 * (0.6 + 0.7 * p), h = w * (height / width);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(shock, cx - w / 2, cy - h / 2, w, h);
+      ctx.restore();
+    }
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {

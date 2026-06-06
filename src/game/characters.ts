@@ -28,6 +28,7 @@ export type Bomb =
   | { kind: "shotgun"; shot: WeaponSpec } // long-range forward shots
   | { kind: "heal"; amount: number } // restore HP instead of attacking
   | { kind: "timestop"; duration: number } // freeze enemies and their shots
+  | { kind: "summon" } // summon a demon: a screen-wide dark blast
   | { kind: "dash"; damage: number }; // invincible forward charge
 
 export interface Character {
@@ -86,14 +87,8 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       name: "LASER", fireDelay: 0.5, pellets: 1, spread: 0, speed: 1150,
       damage: 2, radius: 6, color: "#0b1020", range: 760, ammo: 8, pierce: true, style: "laser",
     },
-    // A forward fan of piercing lasers.
-    bomb: {
-      kind: "shotgun",
-      shot: {
-        name: "LASER FAN", fireDelay: 0, pellets: 5, spread: 0.34, speed: 1120,
-        damage: 2, radius: 6, color: "#0b1020", range: 780, ammo: 0, pierce: true, style: "laser",
-      },
-    },
+    // Summon a demon: a screen-wide dark blast with the summoned-monster art.
+    bomb: { kind: "summon" },
     // Sliced from charB.png: idle ×4, run ×6, 闇の瘴気 ×4, 闇の炎 ×3.
     sprite: {
       frameW: 200, frameH: 130, fps: 8,

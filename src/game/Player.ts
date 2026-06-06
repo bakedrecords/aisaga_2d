@@ -76,6 +76,9 @@ export class Player {
   get centerX(): number {
     return this.x + WIDTH / 2;
   }
+  get facingDir(): number {
+    return this.facing;
+  }
   get center(): Vector2 {
     return new Vector2(this.x + WIDTH / 2, this.y + STAND_H / 2);
   }
