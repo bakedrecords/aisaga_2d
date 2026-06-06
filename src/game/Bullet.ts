@@ -1,5 +1,6 @@
 import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
+import { getSprite } from "./sprites";
 
 export type BulletStyle = "flame" | "laser" | "dark" | "light";
 
@@ -65,6 +66,20 @@ export class Bullet {
   render(ctx: CanvasRenderingContext2D): void {
     const { x, y } = this.pos;
     if (this.style === "flame") {
+      const img = getSprite("fire");
+      if (img) {
+        // The fireball art points right; rotate it to the travel direction.
+        const { width, height } = img as unknown as { width: number; height: number };
+        const h = this.radius * 2.6;
+        const w = h * (width / height);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.atan2(this.vel.y, this.vel.x));
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        ctx.restore();
+        return;
+      }
       this.disc(ctx, "#f97316", this.radius);
       this.disc(ctx, "#fde047", this.radius * 0.55);
       return;

@@ -66,6 +66,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       anims: {
         idle: [3], // the idle row is a 4-way turn-around; pin to the right-facing pose
         run: [4, 5, 6, 7, 8, 9],
+        jump: [9], // a mid-stride run frame reads as a leap
         shoot: [10, 11, 12, 13, 14],
         magic: [15, 16, 17],
       },
