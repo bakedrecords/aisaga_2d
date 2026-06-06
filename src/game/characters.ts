@@ -1,4 +1,5 @@
 import type { BulletStyle } from "./Bullet";
+import type { SpriteConfig } from "./sprites";
 
 export type CharacterId = "A" | "B" | "C" | "D" | "E";
 
@@ -39,6 +40,7 @@ export interface Character {
   special: WeaponSpec; // pickup weapon (W box), limited ammo
   bomb: Bomb; // button K
   airJumps?: number; // extra mid-air jumps (e.g. 1 = double jump)
+  sprite?: SpriteConfig; // pixel-art sheet; falls back to a coloured box if absent
 }
 
 export const CHARACTERS: Record<CharacterId, Character> = {
@@ -57,6 +59,11 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 2, radius: 7, color: "#fb923c", range: 230, ammo: 6, style: "flame",
     },
     bomb: { kind: "blast" },
+    // Placeholder sheet (src/game/assets/charA.png): 5 frames of 32×32.
+    sprite: {
+      frameW: 32, frameH: 32, fps: 9,
+      anims: { idle: [0], run: [1, 2, 3, 2], shoot: [4] },
+    },
   },
   B: {
     id: "B",

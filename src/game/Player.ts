@@ -5,6 +5,7 @@ import { Bullet } from "./Bullet";
 import type { Bomb, Character, WeaponSpec } from "./characters";
 import type { Level } from "./Level";
 import type { Sound } from "./Sound";
+import { getSprite, type SpriteConfig } from "./sprites";
 
 const WIDTH = 28;
 const STAND_H = 44;
@@ -53,6 +54,8 @@ export class Player {
   private pendingMelee: MeleeHit | null = null;
   private special = false; // using the pickup weapon instead of the main attack
   private ammo = 0;
+  private animTime = 0; // drives sprite animation frame selection
+  private shootFx = 0; // brief timer so the "shoot" pose lingers after firing
 
   hp = MAX_HP;
   bombs = 1;
@@ -104,6 +107,8 @@ export class Player {
   update(dt: number, input: Input, level: Level, bullets: Bullet[], audio: Sound): void {
     if (this.invuln > 0) this.invuln -= dt;
     if (this.slashTimer > 0) this.slashTimer -= dt;
+    if (this.shootFx > 0) this.shootFx -= dt;
+    this.animTime += dt;
 
     this.crouching = this.onGround && DOWN_KEYS.some((k) => input.isDown(k));
 
@@ -231,6 +236,7 @@ export class Player {
     }
 
     this.fireCooldown = spec.fireDelay;
+    this.shootFx = 0.14;
     audio.shoot(spec.melee ? "slash" : spec.style ?? "gun");
 
     if (this.special) {
@@ -331,6 +337,20 @@ export class Player {
   render(ctx: CanvasRenderingContext2D): void {
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) return;
 
+    const sheet = this.character.sprite ? getSprite(this.character.id) : undefined;
+    if (this.character.sprite && sheet) {
+      this.drawSprite(ctx, sheet, this.character.sprite);
+    } else {
+      this.drawBox(ctx);
+    }
+
+    if (this.slashTimer > 0 && this.character.normal.melee) {
+      this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
+    }
+  }
+
+  /** Fallback look when no sprite sheet is loaded: a coloured body + gun nub. */
+  private drawBox(ctx: CanvasRenderingContext2D): void {
     const h = this.crouching ? CROUCH_H : STAND_H;
     const top = this.crouching ? this.y + (STAND_H - CROUCH_H) : this.y;
     ctx.fillStyle = this.character.bodyColor;
@@ -340,10 +360,37 @@ export class Player {
     const gy = this.gunY();
     if (this.facing > 0) ctx.fillRect(this.x + WIDTH, gy - 2, 12, 5);
     else ctx.fillRect(this.x - 12, gy - 2, 12, 5);
+  }
 
-    if (this.slashTimer > 0 && this.character.normal.melee) {
-      this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
+  /** Pick the current sheet frame from the active animation. */
+  private spriteFrame(cfg: SpriteConfig): number {
+    let frames: number[];
+    if (this.shootFx > 0) frames = cfg.anims.shoot;
+    else if (!this.onGround && cfg.anims.jump) frames = cfg.anims.jump;
+    else if (this.onGround && Math.abs(this.vx) > 1) frames = cfg.anims.run;
+    else frames = cfg.anims.idle;
+    return frames[Math.floor(this.animTime * cfg.fps) % frames.length];
+  }
+
+  private drawSprite(ctx: CanvasRenderingContext2D, sheet: CanvasImageSource, cfg: SpriteConfig): void {
+    const frame = this.spriteFrame(cfg);
+    // Sprites overhang the hitbox a little (the box is just the hurt area).
+    const drawH = (this.crouching ? CROUCH_H : STAND_H) * 1.3;
+    const drawW = drawH * (cfg.frameW / cfg.frameH);
+    const dx = this.centerX - drawW / 2;
+    const dy = this.y + STAND_H - drawH; // anchor the feet to the ground
+    const sx = frame * cfg.frameW;
+
+    ctx.imageSmoothingEnabled = false; // keep pixel art crisp when scaled up
+    ctx.save();
+    if (this.facing < 0) {
+      ctx.translate(dx + drawW, dy);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sheet, sx, 0, cfg.frameW, cfg.frameH, 0, 0, drawW, drawH);
+    } else {
+      ctx.drawImage(sheet, sx, 0, cfg.frameW, cfg.frameH, dx, dy, drawW, drawH);
     }
+    ctx.restore();
   }
 
   private drawSlash(ctx: CanvasRenderingContext2D, range: number, arc: number): void {
