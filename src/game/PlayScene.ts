@@ -9,12 +9,14 @@ import { Particles } from "./Particles";
 import { Pickup, type PickupConfig } from "./Pickup";
 import { type MeleeHit, Player } from "./Player";
 import { sound } from "./Sound";
+import { getSprite } from "./sprites";
 import { type EnemyKind, type PickupDef, type StageDef, STAGES } from "./stages";
 import { TitleScene } from "./TitleScene";
 
 const CLEAR_BONUS = 500;
 export const DEFAULT_LIVES = 3;
 const BOMB_DAMAGE = 8;
+const BOMB_FIRE_TIME = 0.55;
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -32,6 +34,7 @@ export class PlayScene implements Scene {
   private pickups: Pickup[] = [];
   private particles = new Particles();
   private bombFlash = 0;
+  private bombFire: { cx: number; cy: number; t: number } | null = null;
   private timeStop = 0;
   private dashDamage = 0;
   private dashHits = new Set<unknown>();
@@ -95,6 +98,7 @@ export class PlayScene implements Scene {
     this.enemyBullets = [];
     this.particles = new Particles();
     this.bombFlash = 0;
+    this.bombFire = null;
     this.timeStop = 0;
     this.camera.follow(this.player.centerX);
   }
@@ -190,6 +194,10 @@ export class PlayScene implements Scene {
     for (const p of this.pickups) p.update(dt);
     this.particles.update(dt);
     if (this.bombFlash > 0) this.bombFlash -= dt;
+    if (this.bombFire) {
+      this.bombFire.t += dt;
+      if (this.bombFire.t >= BOMB_FIRE_TIME) this.bombFire = null;
+    }
 
     this.handlePlayerBullets();
     if (!frozen) {
@@ -271,9 +279,9 @@ export class PlayScene implements Scene {
         this.hurtEnemy(e, BOMB_DAMAGE);
       }
     }
-    this.particles.burst(c, "#fde047", 80, 920, { life: 0.7, size: 7, gravity: 60 });
-    this.particles.burst(c, "#fb923c", 64, 760, { life: 0.7, size: 7, gravity: 60 });
-    this.particles.burst(c, "#f87171", 44, 540, { life: 0.6, size: 6, gravity: 60 });
+    this.particles.burst(c, "#fde047", 48, 820, { life: 0.6, size: 6, gravity: 60 });
+    this.particles.burst(c, "#fb923c", 36, 620, { life: 0.6, size: 6, gravity: 60 });
+    this.bombFire = { cx: c.x, cy: c.y, t: 0 };
     sound.explosion();
     this.camera.shake(30);
     this.bombFlash = 0.18;
@@ -452,6 +460,7 @@ export class PlayScene implements Scene {
     for (const b of this.enemyBullets) b.render(ctx);
     this.particles.render(ctx);
     this.player.render(ctx);
+    this.drawBombFire(ctx);
     ctx.restore();
 
     if (this.bombFlash > 0) {
@@ -478,6 +487,37 @@ export class PlayScene implements Scene {
       this.drawBossBar(ctx);
     }
     this.drawBanner(ctx);
+  }
+
+  /** The fire bomb: a central fireball that swells, plus a ring of flames
+   *  bursting outward, all fading over BOMB_FIRE_TIME. */
+  private drawBombFire(ctx: CanvasRenderingContext2D): void {
+    if (!this.bombFire) return;
+    const img = getSprite("fireBig");
+    if (!img) return;
+    const { cx, cy, t } = this.bombFire;
+    const p = t / BOMB_FIRE_TIME; // 0..1
+    const ease = 1 - (1 - p) * (1 - p); // ease-out
+    const { width, height } = img as unknown as { width: number; height: number };
+    const aspect = height / width;
+    const draw = (x: number, y: number, size: number, rot: number, alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, -size / 2, (-size * aspect) / 2, size, size * aspect);
+      ctx.restore();
+    };
+    // Ring of flames bursting outward (the art points right → points outward).
+    const reach = ease * Math.min(this.viewWidth, this.viewHeight) * 0.55;
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + 0.4;
+      draw(cx + Math.cos(ang) * reach, cy + Math.sin(ang) * reach, 120 * (0.7 + 0.6 * ease), ang, 1 - p);
+    }
+    // Central swelling burst.
+    draw(cx, cy, 200 + 280 * ease, 0, 1 - p * 0.8);
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {

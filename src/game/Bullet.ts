@@ -2,7 +2,7 @@ import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
 import { getSprite } from "./sprites";
 
-export type BulletStyle = "flame" | "laser" | "dark" | "light";
+export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet";
 
 export interface BulletOptions {
   radius?: number;
@@ -68,20 +68,20 @@ export class Bullet {
     if (this.style === "flame") {
       const img = getSprite("fire");
       if (img) {
-        // The fireball art points right; rotate it to the travel direction.
-        const { width, height } = img as unknown as { width: number; height: number };
-        const h = this.radius * 2.6;
-        const w = h * (width / height);
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(Math.atan2(this.vel.y, this.vel.x));
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, -w / 2, -h / 2, w, h);
-        ctx.restore();
+        this.drawDirectional(ctx, img, 2.6);
         return;
       }
       this.disc(ctx, "#f97316", this.radius);
       this.disc(ctx, "#fde047", this.radius * 0.55);
+      return;
+    }
+    if (this.style === "bullet") {
+      const img = getSprite("bullet");
+      if (img) {
+        this.drawDirectional(ctx, img, 2.4);
+        return;
+      }
+      this.disc(ctx, this.color, this.radius);
       return;
     }
     if (this.style === "dark") {
@@ -109,6 +109,20 @@ export class Bullet {
       return;
     }
     this.disc(ctx, this.color, this.radius);
+  }
+
+  /** Draw a sprite centred on the bullet, rotated to its travel direction.
+   *  The art is authored pointing right (+x); height is radius × factor. */
+  private drawDirectional(ctx: CanvasRenderingContext2D, img: CanvasImageSource, heightFactor: number): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const h = this.radius * heightFactor;
+    const w = h * (width / height);
+    ctx.save();
+    ctx.translate(this.pos.x, this.pos.y);
+    ctx.rotate(Math.atan2(this.vel.y, this.vel.x));
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
   }
 
   private disc(ctx: CanvasRenderingContext2D, color: string, r: number): void {

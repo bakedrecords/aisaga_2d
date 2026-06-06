@@ -52,7 +52,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     accent: "#fb923c",
     normal: {
       name: "GUN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
-      damage: 1, radius: 4, color: "#fde047", range: 440, ammo: 0,
+      damage: 1, radius: 4, color: "#fde047", range: 440, ammo: 0, style: "bullet",
     },
     special: {
       name: "FIRE", fireDelay: 0.25, pellets: 6, spread: 0.85, speed: 600,

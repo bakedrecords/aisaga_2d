@@ -9,7 +9,6 @@ import { getSprite, type SpriteConfig } from "./sprites";
 
 const WIDTH = 28;
 const STAND_H = 44;
-const CROUCH_H = 28;
 const MOVE_SPEED = 230;
 const JUMP_SPEED = 700;
 const GRAVITY = 1700;
@@ -43,7 +42,6 @@ export class Player {
   private vy = 0;
   private facing = 1;
   private onGround = false;
-  private crouching = false;
   private fireCooldown = 0;
   private invuln = 0;
   private jumpsUsed = 0;
@@ -85,8 +83,7 @@ export class Player {
     return new Rect(this.x, this.y, WIDTH, STAND_H);
   }
   get hurtBounds(): Rect {
-    if (!this.crouching) return this.bounds;
-    return new Rect(this.x, this.y + (STAND_H - CROUCH_H), WIDTH, CROUCH_H);
+    return this.bounds;
   }
   get weaponName(): string {
     return this.special ? this.character.special.name : this.character.normal.name;
@@ -110,14 +107,12 @@ export class Player {
     if (this.shootFx > 0) this.shootFx -= dt;
     this.animTime += dt;
 
-    this.crouching = this.onGround && DOWN_KEYS.some((k) => input.isDown(k));
-
-    const move = this.crouching ? 0 : input.horizontal();
+    const move = input.horizontal();
     this.vx = move * MOVE_SPEED;
     if (move !== 0) this.facing = move;
 
     if (this.onGround) this.jumpsUsed = 0;
-    if (!this.crouching && input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
+    if (input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
       if (!this.onGround) this.airJumpFx = true; // a mid-air (double) jump
       this.vy = -JUMP_SPEED;
       this.onGround = false;
@@ -191,7 +186,7 @@ export class Player {
   }
 
   private gunY(): number {
-    return this.y + (this.crouching ? STAND_H - 14 : STAND_H * 0.4);
+    return this.y + STAND_H * 0.4;
   }
 
   private updateShooting(dt: number, input: Input, bullets: Bullet[], audio: Sound): void {
@@ -323,7 +318,6 @@ export class Player {
     this.vy = 0;
     this.hp = MAX_HP;
     this.invuln = RESPAWN_INVULN;
-    this.crouching = false;
     this.jumpsUsed = 0;
     this.slashTimer = 0;
     this.dashTimer = 0;
@@ -351,10 +345,8 @@ export class Player {
 
   /** Fallback look when no sprite sheet is loaded: a coloured body + gun nub. */
   private drawBox(ctx: CanvasRenderingContext2D): void {
-    const h = this.crouching ? CROUCH_H : STAND_H;
-    const top = this.crouching ? this.y + (STAND_H - CROUCH_H) : this.y;
     ctx.fillStyle = this.character.bodyColor;
-    ctx.fillRect(this.x, top, WIDTH, h);
+    ctx.fillRect(this.x, this.y, WIDTH, STAND_H);
 
     ctx.fillStyle = "#e2e8f0";
     const gy = this.gunY();
@@ -375,7 +367,7 @@ export class Player {
   private drawSprite(ctx: CanvasRenderingContext2D, sheet: CanvasImageSource, cfg: SpriteConfig): void {
     const frame = this.spriteFrame(cfg);
     // Sprites overhang the hitbox a little (the box is just the hurt area).
-    const drawH = (this.crouching ? CROUCH_H : STAND_H) * 1.3;
+    const drawH = STAND_H * 1.3;
     const drawW = drawH * (cfg.frameW / cfg.frameH);
     const dx = this.centerX - drawW / 2;
     const dy = this.y + STAND_H - drawH; // anchor the feet to the ground

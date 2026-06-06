@@ -4,12 +4,16 @@ import { TouchControls } from "./game/TouchControls";
 import { loadSprite } from "./game/sprites";
 import charAUrl from "./game/assets/charA_anim.png";
 import fireUrl from "./game/assets/fireA.png";
+import fireBigUrl from "./game/assets/fireBigA.png";
+import bulletUrl from "./game/assets/bulletA.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
 // coloured box / procedural shape until their sheet is ready.
 loadSprite("A", charAUrl);
 loadSprite("fire", fireUrl);
+loadSprite("fireBig", fireBigUrl);
+loadSprite("bullet", bulletUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {
