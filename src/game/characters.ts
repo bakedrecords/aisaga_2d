@@ -59,10 +59,16 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 2, radius: 7, color: "#fb923c", range: 230, ammo: 6, style: "flame",
     },
     bomb: { kind: "blast" },
-    // Placeholder sheet (src/game/assets/charA.png): 5 frames of 32×32.
+    // Sliced from the uploaded sheet into src/game/assets/charA_anim.png:
+    // 18 frames of 196×139 (idle ×4, run ×6, pistol ×5, fire-magic ×3).
     sprite: {
-      frameW: 32, frameH: 32, fps: 9,
-      anims: { idle: [0], run: [1, 2, 3, 2], shoot: [4] },
+      frameW: 196, frameH: 139, fps: 8,
+      anims: {
+        idle: [0, 1, 2, 3],
+        run: [4, 5, 6, 7, 8, 9],
+        shoot: [10, 11, 12, 13, 14],
+        magic: [15, 16, 17],
+      },
     },
   },
   B: {

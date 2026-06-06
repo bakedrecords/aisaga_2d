@@ -2,8 +2,9 @@
 export interface SpriteAnims {
   idle: number[];
   run: number[];
-  shoot: number[];
+  shoot: number[]; // firing the main gun
   jump?: number[];
+  magic?: number[]; // firing the special weapon (e.g. A's fire magic)
 }
 
 export interface SpriteConfig {

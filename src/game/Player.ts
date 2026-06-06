@@ -365,7 +365,7 @@ export class Player {
   /** Pick the current sheet frame from the active animation. */
   private spriteFrame(cfg: SpriteConfig): number {
     let frames: number[];
-    if (this.shootFx > 0) frames = cfg.anims.shoot;
+    if (this.shootFx > 0) frames = this.special && cfg.anims.magic ? cfg.anims.magic : cfg.anims.shoot;
     else if (!this.onGround && cfg.anims.jump) frames = cfg.anims.jump;
     else if (this.onGround && Math.abs(this.vx) > 1) frames = cfg.anims.run;
     else frames = cfg.anims.idle;

@@ -2,7 +2,7 @@ import { Game } from "./engine/Game";
 import { TitleScene } from "./game/TitleScene";
 import { TouchControls } from "./game/TouchControls";
 import { loadSprite } from "./game/sprites";
-import charAUrl from "./game/assets/charA.png";
+import charAUrl from "./game/assets/charA_anim.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
