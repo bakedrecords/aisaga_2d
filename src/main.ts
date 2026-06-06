@@ -3,6 +3,9 @@ import { TitleScene } from "./game/TitleScene";
 import { TouchControls } from "./game/TouchControls";
 import { loadSprite } from "./game/sprites";
 import charAUrl from "./game/assets/charA_anim.png";
+import charBUrl from "./game/assets/charB_anim.png";
+import charCUrl from "./game/assets/charC_anim.png";
+import charEUrl from "./game/assets/charE_anim.png";
 import fireUrl from "./game/assets/fireA.png";
 import fireBigUrl from "./game/assets/fireBigA.png";
 import bulletUrl from "./game/assets/bulletA.png";
@@ -11,6 +14,9 @@ import "./style.css";
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
 // coloured box / procedural shape until their sheet is ready.
 loadSprite("A", charAUrl);
+loadSprite("B", charBUrl);
+loadSprite("C", charCUrl);
+loadSprite("E", charEUrl);
 loadSprite("fire", fireUrl);
 loadSprite("fireBig", fireBigUrl);
 loadSprite("bullet", bulletUrl);

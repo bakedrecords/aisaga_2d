@@ -94,6 +94,17 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         damage: 2, radius: 6, color: "#0b1020", range: 780, ammo: 0, pierce: true, style: "laser",
       },
     },
+    // Sliced from charB.png: idle ×4, run ×6, 闇の瘴気 ×4, 闇の炎 ×3.
+    sprite: {
+      frameW: 200, frameH: 130, fps: 8,
+      anims: {
+        idle: [3],
+        run: [4, 5, 6, 7, 8, 9],
+        jump: [9],
+        shoot: [10, 11, 12, 13],
+        magic: [14, 15, 16],
+      },
+    },
   },
   C: {
     id: "C",
@@ -113,6 +124,16 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     },
     bomb: { kind: "heal", amount: 2 },
     airJumps: 1,
+    // Sliced from charC.png: idle ×4, run ×6, 光弾 ×4, 羽ばたき ×4 (flight=jump).
+    sprite: {
+      frameW: 300, frameH: 116, fps: 8,
+      anims: {
+        idle: [3],
+        run: [4, 5, 6, 7, 8, 9],
+        jump: [14, 15, 16, 17], // wing-flap, fitting her double jump
+        shoot: [10, 11, 12, 13],
+      },
+    },
   },
   D: {
     id: "D",
@@ -150,6 +171,17 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 2, radius: 4, color: "#e2e8f0", range: 440, ammo: 12,
     },
     bomb: { kind: "dash", damage: 10 },
+    // Sliced from charE.png: idle ×4, run ×6, 日本刀 ×4, 手裏剣 ×3.
+    sprite: {
+      frameW: 308, frameH: 122, fps: 8,
+      anims: {
+        idle: [3],
+        run: [4, 5, 6, 7, 8, 9],
+        jump: [9],
+        shoot: [10, 11, 12, 13], // katana swing
+        magic: [14, 15, 16], // shuriken throw
+      },
+    },
   },
 };
 
