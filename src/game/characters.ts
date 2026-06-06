@@ -168,7 +168,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     // Shuriken: a strong ranged shot (double A's normal), limited ammo.
     special: {
       name: "SHURIKEN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
-      damage: 2, radius: 4, color: "#e2e8f0", range: 440, ammo: 12,
+      damage: 2, radius: 4, color: "#e2e8f0", range: 440, ammo: 12, style: "shuriken",
     },
     bomb: { kind: "dash", damage: 10 },
     // Sliced from charE.png: idle ×4, run ×6, 日本刀 ×4, 手裏剣 ×3.

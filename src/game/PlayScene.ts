@@ -294,13 +294,17 @@ export class PlayScene implements Scene {
     for (const e of this.targets()) {
       if (!e.alive) continue;
       const ec = e.center;
-      const dx = ec.x - m.x;
-      const dy = ec.y - m.y;
-      const dist = Math.hypot(dx, dy);
+      // Measure to the enemy's nearest edge, not its centre, so a target whose
+      // body is within the arc connects even when its centre sits just past the
+      // range — matching the drawn arc.
+      const b = e.bounds;
+      const nx = Math.max(b.x, Math.min(m.x, b.right));
+      const ny = Math.max(b.y, Math.min(m.y, b.bottom));
+      const dist = Math.hypot(nx - m.x, ny - m.y);
       if (dist > m.range) continue;
       // Point-blank: skip the angle test so a touching enemy always connects.
       if (dist > 40) {
-        const ang = Math.atan2(dy, dx);
+        const ang = Math.atan2(ec.y - m.y, ec.x - m.x);
         const diff = Math.abs(Math.atan2(Math.sin(ang - m.angle), Math.cos(ang - m.angle)));
         if (diff > half) continue;
       }

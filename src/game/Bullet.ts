@@ -2,7 +2,20 @@ import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
 import { getSprite } from "./sprites";
 
-export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet";
+export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "shuriken";
+
+/** Bullet styles that draw a sprite (sliced from a character sheet) when its
+ *  image is loaded, falling back to the procedural shapes below otherwise.
+ *  `h` is the draw height as a multiple of the bullet radius; `spin` rotates
+ *  the sprite over distance instead of pointing it along the velocity. */
+const STYLE_SPRITES: Partial<Record<BulletStyle, { id: string; h: number; spin?: boolean }>> = {
+  flame: { id: "fire", h: 2.6 },
+  bullet: { id: "bullet", h: 2.4 },
+  dark: { id: "miasmaS", h: 3.2 },
+  laser: { id: "miasmaL", h: 5.0 },
+  light: { id: "lightorb", h: 3.4 },
+  shuriken: { id: "shuriken", h: 4.5, spin: true },
+};
 
 export interface BulletOptions {
   radius?: number;
@@ -65,22 +78,21 @@ export class Bullet {
 
   render(ctx: CanvasRenderingContext2D): void {
     const { x, y } = this.pos;
-    if (this.style === "flame") {
-      const img = getSprite("fire");
+    // Sprite-backed styles: use the sheet art when loaded, else fall through.
+    const spec = this.style ? STYLE_SPRITES[this.style] : undefined;
+    if (spec) {
+      const img = getSprite(spec.id);
       if (img) {
-        this.drawDirectional(ctx, img, 2.6);
+        this.drawDirectional(ctx, img, spec.h, spec.spin);
         return;
       }
+    }
+    if (this.style === "flame") {
       this.disc(ctx, "#f97316", this.radius);
       this.disc(ctx, "#fde047", this.radius * 0.55);
       return;
     }
     if (this.style === "bullet") {
-      const img = getSprite("bullet");
-      if (img) {
-        this.drawDirectional(ctx, img, 2.4);
-        return;
-      }
       this.disc(ctx, this.color, this.radius);
       return;
     }
@@ -111,15 +123,16 @@ export class Bullet {
     this.disc(ctx, this.color, this.radius);
   }
 
-  /** Draw a sprite centred on the bullet, rotated to its travel direction.
-   *  The art is authored pointing right (+x); height is radius × factor. */
-  private drawDirectional(ctx: CanvasRenderingContext2D, img: CanvasImageSource, heightFactor: number): void {
+  /** Draw a sprite centred on the bullet. The art is authored pointing right
+   *  (+x); height is radius × factor. Pointed along the velocity, or spun over
+   *  distance (e.g. a shuriken). */
+  private drawDirectional(ctx: CanvasRenderingContext2D, img: CanvasImageSource, heightFactor: number, spin = false): void {
     const { width, height } = img as unknown as { width: number; height: number };
     const h = this.radius * heightFactor;
     const w = h * (width / height);
     ctx.save();
     ctx.translate(this.pos.x, this.pos.y);
-    ctx.rotate(Math.atan2(this.vel.y, this.vel.x));
+    ctx.rotate(spin ? this.traveled * 0.07 : Math.atan2(this.vel.y, this.vel.x));
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(img, -w / 2, -h / 2, w, h);
     ctx.restore();

@@ -9,6 +9,10 @@ import charEUrl from "./game/assets/charE_anim.png";
 import fireUrl from "./game/assets/fireA.png";
 import fireBigUrl from "./game/assets/fireBigA.png";
 import bulletUrl from "./game/assets/bulletA.png";
+import miasmaSUrl from "./game/assets/miasmaS.png";
+import miasmaLUrl from "./game/assets/miasmaL.png";
+import lightorbUrl from "./game/assets/lightorb.png";
+import shurikenUrl from "./game/assets/shuriken.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -20,6 +24,10 @@ loadSprite("E", charEUrl);
 loadSprite("fire", fireUrl);
 loadSprite("fireBig", fireBigUrl);
 loadSprite("bullet", bulletUrl);
+loadSprite("miasmaS", miasmaSUrl);
+loadSprite("miasmaL", miasmaLUrl);
+loadSprite("lightorb", lightorbUrl);
+loadSprite("shuriken", shurikenUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {
