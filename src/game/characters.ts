@@ -64,7 +64,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     sprite: {
       frameW: 196, frameH: 139, fps: 8,
       anims: {
-        idle: [0, 1, 2, 3],
+        idle: [3], // the idle row is a 4-way turn-around; pin to the right-facing pose
         run: [4, 5, 6, 7, 8, 9],
         shoot: [10, 11, 12, 13, 14],
         magic: [15, 16, 17],
