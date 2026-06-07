@@ -12,7 +12,7 @@ const PREV_KEYS = ["ArrowLeft", "KeyA"];
 
 const ABILITIES: Record<CharacterId, string> = {
   A: "Skill: 自分中心の大爆発（炎）",
-  B: "Skill: 召喚＋前方レーザー（ボス特効）",
+  B: "Skill: 召喚＋前方レーザー（ボス特効・HP-2）",
   C: "Skill: HPを2回復",
   D: "Skill: 3秒 時間停止（敵弾も停止）",
   E: "Skill: ハンマー叩きつけ（接地敵に大ダメージ）",

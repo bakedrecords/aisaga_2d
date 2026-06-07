@@ -329,6 +329,11 @@ export class Player {
     return true;
   }
 
+  /** Spend HP as a skill cost (no invulnerability — a deliberate self-cost). */
+  spendHp(amount: number): void {
+    this.hp = Math.max(0, this.hp - amount);
+  }
+
   /** Mark the player as knocked out — drawn lying on the ground during the
    *  brief death pause before respawning. */
   down(): void {

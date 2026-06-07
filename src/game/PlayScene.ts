@@ -163,9 +163,19 @@ export class PlayScene implements Scene {
     }
 
     // Bombs charge for BOMB_WINDUP (player rooted in a pose) before firing.
-    if (input.wasPressed("KeyK") && !this.bombWindup && this.player.consumeBomb()) {
-      this.bombWindup = { bomb: this.player.bomb, t: 0 };
-      this.player.chargeBomb(BOMB_WINDUP);
+    // Some skills (Eita's summon) also cost HP — and can't be used if that
+    // would drop the player, so at least 1 HP always remains.
+    if (input.wasPressed("KeyK") && !this.bombWindup) {
+      const hpCost = this.character.skillHpCost ?? 0;
+      if (this.player.hp > hpCost && this.player.consumeBomb()) {
+        this.bombWindup = { bomb: this.player.bomb, t: 0 };
+        this.player.chargeBomb(BOMB_WINDUP);
+        if (hpCost > 0) {
+          this.player.spendHp(hpCost);
+          this.particles.burst(this.player.center, "#fca5a5", 12, 220, { life: 0.4, size: 3 });
+          sound.playerHit();
+        }
+      }
     }
     if (this.bombWindup) {
       this.bombWindup.t += dt;
@@ -260,6 +270,8 @@ export class PlayScene implements Scene {
             this.characterId,
           ),
         );
+      } else if (input.wasPressed("KeyT")) {
+        game.changeScene(new TitleScene());
       }
       return;
     }
@@ -1149,7 +1161,7 @@ export class PlayScene implements Scene {
     if (this.state === "won") {
       title = "STAGE CLEAR!";
       color = "#4ade80";
-      sub = "次のステージへ: Space";
+      sub = "次へ: Space    T: タイトル";
     } else if (this.state === "complete") {
       title = "GAME COMPLETE!";
       color = "#fbbf24";

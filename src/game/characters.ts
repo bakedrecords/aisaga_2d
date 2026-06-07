@@ -41,6 +41,7 @@ export interface Character {
   normal: WeaponSpec; // main attack (button J), infinite
   special: WeaponSpec; // pickup weapon (W box), limited ammo
   bomb: Bomb; // button K
+  skillHpCost?: number; // HP spent each time the skill (bomb) is used
   airJumps?: number; // extra mid-air jumps (e.g. 1 = double jump)
   sprite?: SpriteConfig; // pixel-art sheet; falls back to a coloured box if absent
   bombPoseSprites?: string[]; // standalone poses shown across the bomb wind-up
@@ -91,7 +92,9 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 3, radius: 6, color: "#0b1020", range: 760, ammo: 3, pierce: true, style: "laser",
     },
     // Summon a demon: a screen-wide dark blast with the summoned-monster art.
+    // Powerful (boss-buster), so it's paid for with HP.
     bomb: { kind: "summon" },
+    skillHpCost: 2,
     // Sliced from charB.png: idle ×4, run ×6, 闇の瘴気 ×4, 闇の炎 ×3.
     sprite: {
       frameW: 200, frameH: 130, fps: 8,
