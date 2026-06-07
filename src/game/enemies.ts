@@ -18,10 +18,11 @@ interface EnemySpriteCfg {
 }
 
 const ENEMY_SPRITES = {
-  walker: { id: "walker", fw: 102, fh: 68, fps: 7, move: [0, 1, 2, 3], faceRight: false, scale: 1.25 },
-  shooter: { id: "shooter", fw: 100, fh: 68, fps: 6, move: [0, 1, 2, 3], attack: [4, 5], faceRight: false, scale: 1.25 },
-  flyer: { id: "flyer", fw: 118, fh: 67, fps: 7, move: [0, 1, 2, 3, 4], faceRight: false, scale: 1.3 },
-  brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: false, scale: 1.35 },
+  // The golems / reaper / mage art faces +x; the dragon faces -x.
+  walker: { id: "walker", fw: 102, fh: 68, fps: 7, move: [0, 1, 2, 3], faceRight: true, scale: 1.3 },
+  shooter: { id: "shooter", fw: 100, fh: 68, fps: 6, move: [0, 1, 2, 3], attack: [4, 5], faceRight: true, scale: 1.3 },
+  flyer: { id: "flyer", fw: 114, fh: 83, fps: 7, move: [0, 1, 2, 3, 4], faceRight: true, scale: 1.7 },
+  brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: true, scale: 1.4 },
   boss: { id: "boss", fw: 424, fh: 410, fps: 1, move: [0], faceRight: false, scale: 1.2 },
 } satisfies Record<string, EnemySpriteCfg>;
 
