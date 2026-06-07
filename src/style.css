@@ -238,7 +238,7 @@ body.touch.portrait .tc-menu {
   left: 50%;
   right: auto;
   top: auto;
-  bottom: calc(var(--deck-h) - 40px);
+  bottom: calc(var(--deck-h) - 116px);
   transform: translateX(-50%);
 }
 
@@ -271,7 +271,7 @@ body.portrait .deck-links a:active {
   color: #bfdbfe;
 }
 
-/* The song-MV credit (title only) tucks just below those links. */
+/* The song-MV credit is redundant with the channel link in portrait. */
 body.portrait #mv-link {
-  bottom: calc(var(--deck-h) - 78px);
+  display: none;
 }
