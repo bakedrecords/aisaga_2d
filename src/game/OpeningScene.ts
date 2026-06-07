@@ -8,6 +8,21 @@ import { TitleScene } from "./TitleScene";
 const SKIP_KEYS = ["Space", "Enter", "KeyJ", "KeyK", "ArrowUp"];
 const EXPL = ["fx_expl0", "fx_expl1", "fx_expl2", "fx_expl3"];
 
+// A rolling barrage that walks across the skyline — the city under attack.
+// (time, x-fraction, y-fraction, scale); later blasts hit harder.
+const CITY_BLASTS: { t: number; x: number; y: number; s: number }[] = [
+  { t: 0.25, x: 0.20, y: 0.34, s: 1.1 },
+  { t: 0.50, x: 0.66, y: 0.28, s: 1.2 },
+  { t: 0.80, x: 0.42, y: 0.44, s: 1.4 },
+  { t: 1.05, x: 0.82, y: 0.36, s: 1.5 },
+  { t: 1.25, x: 0.30, y: 0.30, s: 1.6 },
+  { t: 1.50, x: 0.55, y: 0.48, s: 1.8 },
+  { t: 1.70, x: 0.13, y: 0.40, s: 1.7 },
+  { t: 1.95, x: 0.73, y: 0.31, s: 2.0 },
+  { t: 2.10, x: 0.45, y: 0.36, s: 2.3 },
+  { t: 2.30, x: 0.62, y: 0.45, s: 2.1 },
+];
+
 // Which sheet frame + signature effect to show for each hero's skill beat.
 const HERO: Record<CharacterId, { frame: number; fx: string }> = {
   A: { frame: 16, fx: "fire" },
@@ -75,11 +90,17 @@ export class OpeningScene implements Scene {
   // ---- shots --------------------------------------------------------------
 
   private shotCity(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage2_bg", w, h, t, 22, clamp01(t / 0.8));
-    // a couple of distant flashes for life
-    if (Math.sin(t * 5) > 0.9) {
-      this.drawFx(ctx, EXPL[2], w * 0.3, h * 0.45, 1.2, 0.5);
+    this.drawBg(ctx, "stage2_bg", w, h, t, 20, clamp01(t / 0.8));
+    // the city is overrun: a barrage of explosions marches across the skyline
+    for (const e of CITY_BLASTS) {
+      const lt = t - e.t;
+      if (lt < 0 || lt > 0.55) continue;
+      const frame = EXPL[Math.min(3, Math.floor((lt / 0.55) * 4))];
+      this.drawFx(ctx, frame, e.x * w, e.y * h, e.s, clamp01(1.25 - lt / 0.55));
     }
+    // a growing fiery haze + smoke as more of it burns
+    ctx.fillStyle = `rgba(140,46,12,${clamp01(t / P_CITY) * 0.24})`;
+    ctx.fillRect(0, 0, w, h);
     this.fadeEdges(ctx, w, h, t, P_CITY);
   }
 
@@ -169,6 +190,8 @@ export class OpeningScene implements Scene {
         ctx.drawImage(pillar, cx - pw / 2, footY - ph, pw, ph);
         ctx.restore();
       }
+      // radiant burst sits behind her so she stays visible in front
+      this.drawFx(ctx, "healBurst", cx, footY - 72, 2.2, alpha * 0.85);
       return;
     }
     if (fx === "fire" && layer === "back") {
@@ -185,7 +208,11 @@ export class OpeningScene implements Scene {
     if (fx === "fire") {
       this.drawFx(ctx, EXPL[Math.min(3, Math.floor(s * 4))], cx, footY - 22, 1.3, alpha * 0.95);
     } else if (fx === "heal") {
-      this.drawFx(ctx, "healBurst", cx, footY - 80, 2.6, alpha);
+      // only light, rising sparkles in front — never covering her
+      for (let i = 0; i < 3; i++) {
+        const a = i * 2.1 + s * 4;
+        this.drawFx(ctx, "lightorb", cx + Math.cos(a) * 66, footY - 50 - s * 70 - i * 18, 0.85, alpha * 0.7);
+      }
     } else if (fx === "summon") {
       this.drawFx(ctx, "fx_hit", cx, footY - 110, 2.0, alpha * (1 - s));
     } else if (fx === "time") {
@@ -217,7 +244,7 @@ export class OpeningScene implements Scene {
       const shuri = getSprite("shuriken");
       if (shuri) {
         const { width, height } = shuri as unknown as { width: number; height: number };
-        const sx = cx - 120 + s * 280;
+        const sx = cx + 24 + s * 300; // thrown forward from her, flying off to the right
         const sc = 2.2;
         ctx.save();
         ctx.globalAlpha = alpha;
