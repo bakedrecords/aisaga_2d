@@ -90,13 +90,13 @@ export abstract class Enemy {
 
 /** Grunt that advances with a varying pace and the odd hop. */
 export class Walker extends Enemy {
-  readonly w = 30;
-  readonly h = 42;
+  readonly w = 45;
+  readonly h = 63;
   private readonly speedBase = 62 + Math.random() * 44;
   private hopTimer = 1 + Math.random() * 2.5;
 
   constructor(x: number, groundY: number) {
-    super(x, groundY - 42, 3, 100);
+    super(x, groundY - 63, 3, 100);
   }
 
   update(ctx: EnemyContext): void {
@@ -127,8 +127,8 @@ export class Walker extends Enemy {
 /** Keeps its distance — advances when far, backs off when close — and fires
  *  aimed shots at irregular intervals. */
 export class Shooter extends Enemy {
-  readonly w = 30;
-  readonly h = 44;
+  readonly w = 45;
+  readonly h = 66;
   private fireTimer = 1;
   private static readonly SPEED = 52;
   private static readonly RANGE = 360;
@@ -136,7 +136,7 @@ export class Shooter extends Enemy {
   private static readonly BULLET_SPEED = 280;
 
   constructor(x: number, groundY: number) {
-    super(x, groundY - 44, 3, 150);
+    super(x, groundY - 66, 3, 150);
   }
 
   update(ctx: EnemyContext): void {
@@ -179,8 +179,8 @@ export class Shooter extends Enemy {
 /** Floats toward the player with a per-instance wobble, slowly homing in on
  *  the player's height (ignores gravity). */
 export class Flyer extends Enemy {
-  readonly w = 34;
-  readonly h = 26;
+  readonly w = 51;
+  readonly h = 39;
   private readonly amp = 42 + Math.random() * 64;
   private readonly freq = 1.8 + Math.random() * 2.2;
   private readonly flySpeed = 92 + Math.random() * 66;
@@ -213,14 +213,14 @@ export class Flyer extends Enemy {
 
 /** Mid-stage mini-boss: a big bruiser that periodically charges. */
 export class Brute extends Enemy {
-  readonly w = 58;
-  readonly h = 64;
+  readonly w = 87;
+  readonly h = 96;
   private static readonly SPEED = 46;
   private chargeTimer = 2 + Math.random() * 2;
   private charging = 0;
 
   constructor(x: number, groundY: number) {
-    super(x, groundY - 64, 14, 600);
+    super(x, groundY - 96, 14, 600);
   }
 
   update(ctx: EnemyContext): void {
@@ -255,8 +255,8 @@ export class Brute extends Enemy {
 
 /** The end-of-game boss: hovers and cycles through several attack patterns. */
 export class Boss extends Enemy {
-  readonly w = 120;
-  readonly h = 110;
+  readonly w = 180;
+  readonly h = 165;
   override readonly isBoss = true;
   private dir = -1;
   private timer = 1.5;
@@ -266,8 +266,8 @@ export class Boss extends Enemy {
   private static readonly SPEED = 64;
 
   constructor(x: number, groundY: number) {
-    super(x, groundY - 110, 60, 2000);
-    this.baseY = groundY - 110;
+    super(x, groundY - 165, 60, 2000);
+    this.baseY = groundY - 165;
   }
 
   private get enraged(): boolean {

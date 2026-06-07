@@ -81,7 +81,7 @@ export class PlayScene implements Scene {
   private reset(): void {
     this.level = new Level(this.stageDef, this.viewHeight);
     this.camera = new Camera(this.viewWidth, this.level.width);
-    this.player = new Player(120, this.level.groundY - 44, this.character);
+    this.player = new Player(120, this.level.groundY - 66, this.character);
     this.enemies = this.stageDef.enemies.map((e) => this.createEnemy(e.type, e.x));
     this.pickups = this.stageDef.pickups.map(
       (p) => new Pickup(p.x, this.level.groundY, toPickupConfig(p)),
@@ -100,7 +100,7 @@ export class PlayScene implements Scene {
 
   /** On losing a life, rebuild the stage and send the player to the start. */
   private respawnAtStart(): void {
-    this.player.respawn(120, this.level.groundY - 44);
+    this.player.respawn(120, this.level.groundY - 66);
     this.bombWindup = null;
     this.enemies = this.stageDef.enemies.map((e) => this.createEnemy(e.type, e.x));
     this.pickups = this.stageDef.pickups.map(
@@ -897,13 +897,13 @@ export class PlayScene implements Scene {
 
     ctx.textAlign = "right";
     ctx.fillStyle = "#fde047";
-    ctx.font = "18px system-ui, sans-serif";
+    ctx.font = "bold 24px system-ui, sans-serif";
     const ammo = this.player.hasInfiniteAmmo ? "∞" : String(this.player.weaponAmmo);
-    ctx.fillText(`${this.player.weaponName}  ${ammo}`, this.viewWidth - 16, 28);
+    ctx.fillText(`${this.player.weaponName}  ${ammo}`, this.viewWidth - 16, 32);
 
     ctx.fillStyle = this.player.bombs > 0 ? "#fbbf24" : "#475569";
-    ctx.font = "15px system-ui, sans-serif";
-    ctx.fillText(`SKILL ×${this.player.bombs}  [K]`, this.viewWidth - 16, 52);
+    ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText(`SKILL ×${this.player.bombs}  [K]`, this.viewWidth - 16, 60);
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#94a3b8";

@@ -7,8 +7,8 @@ import type { Level } from "./Level";
 import type { Sound } from "./Sound";
 import { getSprite, type SpriteConfig } from "./sprites";
 
-const WIDTH = 28;
-const STAND_H = 44;
+const WIDTH = 42;
+const STAND_H = 66;
 const MOVE_SPEED = 230;
 const JUMP_SPEED = 700;
 const GRAVITY = 1700;
