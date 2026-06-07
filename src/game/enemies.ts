@@ -3,6 +3,27 @@ import { clamp, Vector2 } from "../engine/Vector2";
 import { Bullet } from "./Bullet";
 import type { Level } from "./Level";
 import type { Sound } from "./Sound";
+import { getSprite } from "./sprites";
+
+/** A sliced enemy sprite sheet (one row of frames). */
+interface EnemySpriteCfg {
+  id: string;
+  fw: number;
+  fh: number;
+  fps: number;
+  move: number[];
+  attack?: number[];
+  faceRight: boolean; // true if the art faces +x
+  scale?: number; // draw height = enemy height × scale
+}
+
+const ENEMY_SPRITES = {
+  walker: { id: "walker", fw: 102, fh: 68, fps: 7, move: [0, 1, 2, 3], faceRight: false, scale: 1.25 },
+  shooter: { id: "shooter", fw: 100, fh: 68, fps: 6, move: [0, 1, 2, 3], attack: [4, 5], faceRight: false, scale: 1.25 },
+  flyer: { id: "flyer", fw: 118, fh: 67, fps: 7, move: [0, 1, 2, 3, 4], faceRight: false, scale: 1.3 },
+  brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: false, scale: 1.35 },
+  boss: { id: "boss", fw: 424, fh: 410, fps: 1, move: [0], faceRight: false, scale: 1.2 },
+} satisfies Record<string, EnemySpriteCfg>;
 
 const GRAVITY = 1700;
 
@@ -23,6 +44,7 @@ export abstract class Enemy {
   protected onGround = false;
   /** Per-instance time with a random start phase, so enemies desync. */
   protected t = Math.random() * Math.PI * 2;
+  protected attackFx = 0; // brief timer to show the attack animation
   hp: number;
   readonly maxHp: number;
   alive = true;
@@ -56,6 +78,31 @@ export abstract class Enemy {
 
   protected faceToward(targetX: number): void {
     this.facing = targetX < this.center.x ? -1 : 1;
+  }
+
+  /** Draw the enemy's sprite if its sheet is loaded; returns true if it drew.
+   *  Foot-anchored, centred on the hitbox, flipped to face the player. */
+  protected renderSprite(ctx: CanvasRenderingContext2D, cfg: EnemySpriteCfg): boolean {
+    const img = getSprite(cfg.id);
+    if (!img) return false;
+    const frames = this.attackFx > 0 && cfg.attack ? cfg.attack : cfg.move;
+    const frame = frames[Math.floor(this.t * cfg.fps) % frames.length];
+    const drawH = this.h * (cfg.scale ?? 1.2);
+    const drawW = drawH * (cfg.fw / cfg.fh);
+    const cx = this.x + this.w / 2;
+    const dy = this.y + this.h - drawH; // feet on the hitbox bottom
+    const flip = cfg.faceRight ? this.facing < 0 : this.facing > 0;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    if (flip) {
+      ctx.translate(cx + drawW / 2, dy);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, frame * cfg.fw, 0, cfg.fw, cfg.fh, 0, 0, drawW, drawH);
+    } else {
+      ctx.drawImage(img, frame * cfg.fw, 0, cfg.fw, cfg.fh, cx - drawW / 2, dy, drawW, drawH);
+    }
+    ctx.restore();
+    return true;
   }
 
   protected fallAndLand(ctx: EnemyContext): void {
@@ -116,6 +163,7 @@ export class Walker extends Enemy {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.renderSprite(ctx, ENEMY_SPRITES.walker)) return;
     ctx.fillStyle = "#f87171";
     ctx.fillRect(this.x, this.y, this.w, this.h);
     ctx.fillStyle = "#1f2937";
@@ -141,6 +189,7 @@ export class Shooter extends Enemy {
 
   update(ctx: EnemyContext): void {
     this.t += ctx.dt;
+    if (this.attackFx > 0) this.attackFx -= ctx.dt;
     this.faceToward(ctx.playerCenter.x);
     const dx = Math.abs(ctx.playerCenter.x - this.center.x);
     if (dx > Shooter.RANGE) {
@@ -154,6 +203,7 @@ export class Shooter extends Enemy {
     this.fireTimer -= ctx.dt;
     if (this.fireTimer <= 0 && dx <= Shooter.RANGE + 80) {
       this.fireTimer = Shooter.INTERVAL * (0.7 + Math.random() * 0.7);
+      this.attackFx = 0.35; // show the cast pose briefly
       const dir = ctx.playerCenter.add(this.center.scale(-1)).normalized();
       ctx.fire(
         new Bullet(this.center, dir.scale(Shooter.BULLET_SPEED), {
@@ -167,6 +217,7 @@ export class Shooter extends Enemy {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.renderSprite(ctx, ENEMY_SPRITES.shooter)) return;
     ctx.fillStyle = "#fb923c";
     ctx.fillRect(this.x, this.y, this.w, this.h);
     ctx.fillStyle = "#1f2937";
@@ -204,6 +255,7 @@ export class Flyer extends Enemy {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.renderSprite(ctx, ENEMY_SPRITES.flyer)) return;
     ctx.fillStyle = "#c084fc";
     ctx.fillRect(this.x, this.y, this.w, this.h);
     ctx.fillStyle = "#1f2937";
@@ -241,6 +293,10 @@ export class Brute extends Enemy {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.renderSprite(ctx, ENEMY_SPRITES.brute)) {
+      this.drawHealthBar(ctx);
+      return;
+    }
     const charging = this.charging > 0;
     ctx.fillStyle = charging ? "#c2410c" : "#9a3412";
     ctx.fillRect(this.x, this.y, this.w, this.h);
@@ -316,6 +372,7 @@ export class Boss extends Enemy {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.renderSprite(ctx, ENEMY_SPRITES.boss)) return;
     ctx.fillStyle = this.windup ? "#b91c1c" : "#7f1d1d";
     ctx.fillRect(this.x, this.y, this.w, this.h);
     ctx.fillStyle = this.enraged ? "#ef4444" : "#b91c1c";
