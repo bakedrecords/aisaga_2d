@@ -19,6 +19,8 @@ const BOMB_DAMAGE = 8;
 const BOMB_FIRE_TIME = 0.55;
 const SUMMON_TIME = 1.0;
 const DASH_SHOCK_TIME = 0.35;
+const HEAL_FX_TIME = 0.85;
+const TIME_RIPPLE_TIME = 0.6;
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -39,6 +41,8 @@ export class PlayScene implements Scene {
   private bombFire: { cx: number; cy: number; t: number } | null = null;
   private summonFx: { cx: number; footY: number; t: number } | null = null;
   private dashShock: { cx: number; cy: number; t: number } | null = null;
+  private healFx: { cx: number; cy: number; t: number } | null = null;
+  private timeRipple: { cx: number; cy: number; t: number } | null = null;
   private timeStop = 0;
   private dashDamage = 0;
   private dashHits = new Set<unknown>();
@@ -105,6 +109,8 @@ export class PlayScene implements Scene {
     this.bombFire = null;
     this.summonFx = null;
     this.dashShock = null;
+    this.healFx = null;
+    this.timeRipple = null;
     this.timeStop = 0;
     this.camera.follow(this.player.centerX);
   }
@@ -149,13 +155,17 @@ export class PlayScene implements Scene {
         this.camera.shake(8);
       } else if (bomb.kind === "heal") {
         this.player.heal(bomb.amount);
-        this.particles.burst(this.player.center, "#86efac", 24, 220, {
-          life: 0.6, size: 4, gravity: -60,
-        });
+        const c = this.player.center;
+        this.healFx = { cx: c.x, cy: c.y, t: 0 };
+        this.particles.burst(c, "#86efac", 30, 240, { life: 0.7, size: 4, gravity: -80 });
+        this.particles.burst(c, "#bbf7d0", 22, 150, { life: 0.85, size: 3, gravity: -50 });
         sound.pickup();
       } else if (bomb.kind === "timestop") {
         this.timeStop = bomb.duration;
+        const c = this.player.center;
+        this.timeRipple = { cx: c.x, cy: c.y, t: 0 };
         sound.explosion();
+        this.camera.shake(10);
       } else if (bomb.kind === "summon") {
         this.summonDemon();
       } else {
@@ -215,6 +225,14 @@ export class PlayScene implements Scene {
     if (this.dashShock) {
       this.dashShock.t += dt;
       if (this.dashShock.t >= DASH_SHOCK_TIME) this.dashShock = null;
+    }
+    if (this.healFx) {
+      this.healFx.t += dt;
+      if (this.healFx.t >= HEAL_FX_TIME) this.healFx = null;
+    }
+    if (this.timeRipple) {
+      this.timeRipple.t += dt;
+      if (this.timeRipple.t >= TIME_RIPPLE_TIME) this.timeRipple = null;
     }
 
     this.handlePlayerBullets();
@@ -498,13 +516,23 @@ export class PlayScene implements Scene {
     for (const b of this.enemyBullets) b.render(ctx);
     this.particles.render(ctx);
     this.drawDashFx(ctx);
+    this.drawTimeRipple(ctx);
     this.player.render(ctx);
     this.drawBombFire(ctx);
     this.drawSummon(ctx);
+    this.drawHealFx(ctx);
     ctx.restore();
 
     if (this.bombFlash > 0) {
       ctx.fillStyle = `rgba(253, 230, 138, ${Math.min(0.5, this.bombFlash * 2.6)})`;
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+    }
+    if (this.healFx && this.healFx.t < 0.2) {
+      ctx.fillStyle = `rgba(134, 239, 172, ${(1 - this.healFx.t / 0.2) * 0.22})`;
+      ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+    }
+    if (this.timeRipple && this.timeRipple.t < 0.16) {
+      ctx.fillStyle = `rgba(207, 250, 254, ${(1 - this.timeRipple.t / 0.16) * 0.4})`;
       ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
     }
 
@@ -622,6 +650,60 @@ export class PlayScene implements Scene {
       ctx.drawImage(shock, cx - w / 2, cy - h / 2, w, h);
       ctx.restore();
     }
+  }
+
+  /** C's heal bomb: a green pillar/cross on the ground and a rising radiance. */
+  private drawHealFx(ctx: CanvasRenderingContext2D): void {
+    if (!this.healFx) return;
+    const { cx, cy, t } = this.healFx;
+    const p = t / HEAL_FX_TIME;
+    const fade = p < 0.18 ? p / 0.18 : p > 0.6 ? 1 - (p - 0.6) / 0.4 : 1;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.imageSmoothingEnabled = false;
+    const pillar = getSprite("healPillar");
+    if (pillar) {
+      const { width, height } = pillar as unknown as { width: number; height: number };
+      const w = 120 * (0.5 + 0.6 * Math.min(1, p / 0.3)), h = w * (height / width);
+      ctx.drawImage(pillar, cx - w / 2, cy + 24 - h / 2, w, h);
+    }
+    const burst = getSprite("healBurst");
+    if (burst) {
+      const { width, height } = burst as unknown as { width: number; height: number };
+      const h = 110 * (0.7 + 0.4 * Math.min(1, p / 0.4)), w = h * (width / height);
+      ctx.drawImage(burst, cx - w / 2, cy + 18 - h - p * 16, w, h); // rising from the feet
+    }
+    ctx.restore();
+  }
+
+  /** D's timestop bomb: expanding cyan rings and radial freeze spikes. */
+  private drawTimeRipple(ctx: CanvasRenderingContext2D): void {
+    if (!this.timeRipple) return;
+    const { cx, cy, t } = this.timeRipple;
+    const p = t / TIME_RIPPLE_TIME;
+    ctx.save();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#67e8f9";
+    for (let i = 0; i < 3; i++) {
+      const rp = p - i * 0.13;
+      if (rp <= 0) continue;
+      ctx.globalAlpha = Math.max(0, 1 - rp) * 0.8;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rp * 300, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = Math.max(0, 1 - p) * 0.8;
+    ctx.strokeStyle = "#a5f3fc";
+    ctx.lineWidth = 2;
+    const rIn = 30 + p * 40, rOut = 70 + p * 120;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * rIn, cy + Math.sin(a) * rIn);
+      ctx.lineTo(cx + Math.cos(a) * rOut, cy + Math.sin(a) * rOut);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {

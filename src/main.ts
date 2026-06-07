@@ -17,6 +17,8 @@ import demonUrl from "./game/assets/demonB.png";
 import summonCircleUrl from "./game/assets/summonCircle.png";
 import dashUrl from "./game/assets/dashE.png";
 import shockUrl from "./game/assets/shockE.png";
+import healBurstUrl from "./game/assets/heal_burst.png";
+import healPillarUrl from "./game/assets/heal_pillar.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -36,6 +38,8 @@ loadSprite("demonB", demonUrl);
 loadSprite("summonCircle", summonCircleUrl);
 loadSprite("dashE", dashUrl);
 loadSprite("shockE", shockUrl);
+loadSprite("healBurst", healBurstUrl);
+loadSprite("healPillar", healPillarUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {
