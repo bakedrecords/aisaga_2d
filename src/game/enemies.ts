@@ -21,9 +21,9 @@ const ENEMY_SPRITES = {
   // The golems / reaper / mage art faces +x; the dragon faces -x.
   walker: { id: "walker", fw: 102, fh: 68, fps: 7, move: [0, 1, 2, 3], faceRight: true, scale: 1.3 },
   shooter: { id: "shooter", fw: 100, fh: 68, fps: 6, move: [0, 1, 2, 3], attack: [4, 5], faceRight: true, scale: 1.3 },
-  flyer: { id: "flyer", fw: 114, fh: 83, fps: 7, move: [0, 1, 2, 3, 4], faceRight: true, scale: 1.7 },
-  brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: true, scale: 1.4 },
-  boss: { id: "boss", fw: 424, fh: 410, fps: 1, move: [0], faceRight: false, scale: 1.2 },
+  flyer: { id: "flyer", fw: 114, fh: 83, fps: 7, move: [0, 1, 2, 3, 4], faceRight: true, scale: 1.35 },
+  brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: true, scale: 1.7 },
+  boss: { id: "boss", fw: 562, fh: 397, fps: 1, move: [0], faceRight: false, scale: 1.25 },
 } satisfies Record<string, EnemySpriteCfg>;
 
 const GRAVITY = 1700;
@@ -231,8 +231,8 @@ export class Shooter extends Enemy {
 /** Floats toward the player with a per-instance wobble, slowly homing in on
  *  the player's height (ignores gravity). */
 export class Flyer extends Enemy {
-  readonly w = 51;
-  readonly h = 39;
+  readonly w = 44;
+  readonly h = 60;
   private readonly amp = 42 + Math.random() * 64;
   private readonly freq = 1.8 + Math.random() * 2.2;
   private readonly flySpeed = 92 + Math.random() * 66;
