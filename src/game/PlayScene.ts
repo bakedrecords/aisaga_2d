@@ -871,8 +871,9 @@ export class PlayScene implements Scene {
     const floor = this.level.theme.floor ? getSprite(this.level.theme.floor) : undefined;
     for (const solid of this.level.solids) {
       const isGround = solid.x === 0 && solid.y === this.level.groundY;
-      if (isGround && floor) {
-        this.drawFloor(ctx, floor, solid);
+      if (floor) {
+        if (isGround) this.drawFloor(ctx, floor, solid);
+        else this.drawPlatform(ctx, floor, solid);
         continue;
       }
       ctx.fillStyle = this.level.theme.ground;
@@ -883,18 +884,51 @@ export class PlayScene implements Scene {
   }
 
   /** Tile the seamless floor strip across the visible span of the ground. */
-  private drawFloor(ctx: CanvasRenderingContext2D, img: CanvasImageSource, solid: { x: number; y: number; w: number; h: number; right: number }): void {
-    const { width, height } = img as unknown as { width: number; height: number };
-    const ftw = width * (solid.h / height);
+  private drawFloor(ctx: CanvasRenderingContext2D, img: CanvasImageSource, solid: { x: number; y: number; w: number; h: number }): void {
     ctx.fillStyle = "#0a0a0f"; // base behind any sub-pixel seam
     ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
+    this.tileStrip(ctx, img, solid.x, solid.y, solid.w, solid.h, solid.y, solid.h);
+  }
+
+  /** Texture a floating platform with the same street art: the strip's road
+   *  surface is aligned to the platform top (drawn at ground scale on the same
+   *  world grid as the floor), capped with a crisp landing edge and an
+   *  underside shadow so it stays readable against the busy backdrop. */
+  private drawPlatform(ctx: CanvasRenderingContext2D, img: CanvasImageSource, solid: { x: number; y: number; w: number; h: number; bottom: number }): void {
+    const slabH = 64; // draw the strip at the same scale as the ground floor
+    ctx.fillStyle = "#0a0a0f";
+    ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
+    // Anchor the strip's bottom (its road surface) to the platform bottom.
+    this.tileStrip(ctx, img, solid.x, solid.y, solid.w, solid.h, solid.bottom - slabH, slabH);
+    ctx.fillStyle = this.level.theme.edge;
+    ctx.fillRect(solid.x, solid.y, solid.w, 2);
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(solid.x, solid.bottom - 3, solid.w, 3);
+  }
+
+  /** Tile a horizontal strip image across a world-space band, anchored to the
+   *  world grid (so adjacent surfaces line up) and clipped to a rect. Only the
+   *  copies overlapping the camera window are drawn. */
+  private tileStrip(
+    ctx: CanvasRenderingContext2D,
+    img: CanvasImageSource,
+    clipX: number, clipY: number, clipW: number, clipH: number,
+    top: number, destH: number,
+  ): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const tw = width * (destH / height);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(clipX, clipY, clipW, clipH);
+    ctx.clip();
     ctx.imageSmoothingEnabled = true;
-    const left = Math.max(solid.x, this.camera.x - ftw);
-    const right = Math.min(solid.right, this.camera.x + this.viewWidth + ftw);
-    const first = Math.floor((left - solid.x) / ftw);
-    for (let i = first; solid.x + i * ftw < right; i++) {
-      ctx.drawImage(img, solid.x + i * ftw, solid.y, ftw, solid.h);
+    const left = Math.max(clipX, this.camera.x - tw);
+    const right = Math.min(clipX + clipW, this.camera.x + this.viewWidth + tw);
+    const first = Math.floor(left / tw);
+    for (let i = first; i * tw < right; i++) {
+      ctx.drawImage(img, i * tw, top, tw, destH);
     }
+    ctx.restore();
   }
 
   private drawSpikes(ctx: CanvasRenderingContext2D): void {
