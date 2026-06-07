@@ -10,12 +10,12 @@ const START_KEYS = ["Space", "KeyJ", "Enter"];
 const NEXT_KEYS = ["ArrowRight", "KeyD"];
 const PREV_KEYS = ["ArrowLeft", "KeyA"];
 
-const ABILITIES: Record<CharacterId, string[]> = {
-  A: ["通常: 黄色い弾（標準）", "特殊(W): 炎の拡散ショット", "ボム(K): 自分中心の大爆発"],
-  B: ["通常: 闇の瘴気弾（やや遅い）", "特殊(W): 黒い貫通レーザー", "ボム(K): 召喚＋前方レーザー2連（ボス特効）"],
-  C: ["通常: 白い弾（Bと同じ）", "特殊(W): 前方＋斜め上に同時発射", "ボム(K): HPを2回復", "★ 二段ジャンプ可"],
-  D: ["通常: 黄色い弾（Aと同じ）", "特殊(W): マシンガン（高速連射）", "ボム(K): 3秒 時間停止（敵弾も停止）"],
-  E: ["通常: 刀・近接90°（雑魚1撃・上向き可）", "特殊(W): 手裏剣（遠距離）", "ボム(K): ハンマー叩きつけ（接地敵に大ダメージ）"],
+const ABILITIES: Record<CharacterId, string> = {
+  A: "Skill: 自分中心の大爆発（炎）",
+  B: "Skill: 召喚＋前方レーザー（ボス特効）",
+  C: "Skill: HPを2回復",
+  D: "Skill: 3秒 時間停止（敵弾も停止）",
+  E: "Skill: ハンマー叩きつけ（接地敵に大ダメージ）",
 };
 
 /** The opening screen: pick a character, then start. */
@@ -90,16 +90,16 @@ export class TitleScene implements Scene {
       ctx.fillText(ch.name, cx, cardY + 82);
     }
 
-    // Selected character's abilities.
+    // Selected character's skill (kept simple — just the skill line).
     const id = CHARACTER_ORDER[this.index];
     ctx.fillStyle = "#cbd5e1";
-    ctx.font = "15px system-ui, sans-serif";
-    ABILITIES[id].forEach((line, i) => ctx.fillText(line, w / 2, 286 + i * 24));
+    ctx.font = "16px system-ui, sans-serif";
+    ctx.fillText(ABILITIES[id], w / 2, 292);
 
     ctx.fillStyle = "#94a3b8";
     ctx.font = "14px system-ui, sans-serif";
     ctx.fillText("← → でキャラ選択    Space / J で決定", w / 2, 384);
-    ctx.fillText("移動 A/D  ジャンプ Space  ショット J  ボム K", w / 2, 410);
+    ctx.fillText("移動 A/D  ジャンプ Space  Attack J  Skill K", w / 2, 410);
 
     ctx.textAlign = "left";
   }

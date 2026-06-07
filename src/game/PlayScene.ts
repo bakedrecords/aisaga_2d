@@ -903,13 +903,13 @@ export class PlayScene implements Scene {
 
     ctx.fillStyle = this.player.bombs > 0 ? "#fbbf24" : "#475569";
     ctx.font = "15px system-ui, sans-serif";
-    ctx.fillText(`BOMB ×${this.player.bombs}  [K]`, this.viewWidth - 16, 52);
+    ctx.fillText(`SKILL ×${this.player.bombs}  [K]`, this.viewWidth - 16, 52);
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px system-ui, sans-serif";
     ctx.fillText(
-      "移動 A/D  ジャンプ Space  照準 ↑↓+方向  ショット J  ボム K",
+      "移動 A/D  ジャンプ Space  照準 ↑↓+方向  Attack J  Skill K",
       16,
       this.viewHeight - 16,
     );

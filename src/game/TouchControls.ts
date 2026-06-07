@@ -32,9 +32,9 @@ export class TouchControls {
       ]),
       this.group("tc-actions", [
         { label: "JUMP", code: "Space", className: "tc-jump" },
-        { label: "SHOT", code: "KeyJ", className: "tc-shot" },
+        { label: "Attack", code: "KeyJ", className: "tc-shot" },
       ]),
-      this.group("tc-special", [{ label: "BOMB", code: "KeyK", className: "tc-bomb" }]),
+      this.group("tc-special", [{ label: "Skill", code: "KeyK", className: "tc-bomb" }]),
       this.group("tc-menu", [{ label: "TITLE", code: "KeyT", className: "tc-title" }]),
     );
   }

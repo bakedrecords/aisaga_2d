@@ -88,7 +88,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     },
     special: {
       name: "LASER", fireDelay: 0.5, pellets: 1, spread: 0, speed: 1150,
-      damage: 2, radius: 6, color: "#0b1020", range: 760, ammo: 8, pierce: true, style: "laser",
+      damage: 3, radius: 6, color: "#0b1020", range: 760, ammo: 3, pierce: true, style: "laser",
     },
     // Summon a demon: a screen-wide dark blast with the summoned-monster art.
     bomb: { kind: "summon" },
