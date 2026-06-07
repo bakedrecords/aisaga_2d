@@ -1,8 +1,10 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
 import { CHARACTER_ORDER, CHARACTERS, type CharacterId } from "./characters";
+import { showMvLink } from "./mvLink";
 import { DEFAULT_LIVES, PlayScene } from "./PlayScene";
 import { sound } from "./Sound";
+import { getSprite } from "./sprites";
 
 const START_KEYS = ["Space", "KeyJ", "Enter"];
 const NEXT_KEYS = ["ArrowRight", "KeyD"];
@@ -44,19 +46,21 @@ export class TitleScene implements Scene {
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
 
+    showMvLink(true);
+
     ctx.fillStyle = "#0b1220";
     ctx.fillRect(0, 0, w, h);
 
     ctx.textAlign = "center";
     ctx.fillStyle = "#4ade80";
-    ctx.font = "bold 50px system-ui, sans-serif";
-    ctx.fillText("RUN & GUN", w / 2, 84);
+    ctx.font = "bold 46px system-ui, sans-serif";
+    ctx.fillText("愛をさがしだせ！", w / 2, 80);
 
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "16px system-ui, sans-serif";
     ctx.fillText("─ キャラ選択 ─", w / 2, 124);
 
-    // Character swatches in a row.
+    // Character portraits (front-facing idle frame) in a row.
     const n = CHARACTER_ORDER.length;
     const spacing = 150;
     const startX = w / 2 - (spacing * (n - 1)) / 2;
@@ -66,17 +70,24 @@ export class TitleScene implements Scene {
       const cx = startX + i * spacing;
       const selected = i === this.index;
       if (selected) {
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillRect(cx - 28, cardY - 4, 56, 56);
+        ctx.fillStyle = "rgba(226, 232, 240, 0.16)";
+        ctx.fillRect(cx - 40, cardY - 18, 80, 94);
       }
-      ctx.fillStyle = ch.bodyColor;
-      ctx.fillRect(cx - 24, cardY, 48, 48);
-      ctx.fillStyle = selected ? "#e2e8f0" : "#64748b";
+      const cfg = ch.sprite;
+      const sheet = cfg ? getSprite(ch.id) : undefined;
+      if (cfg && sheet) {
+        // Frame 0 of the idle row is the front view.
+        const dh = 74;
+        const dw = dh * (cfg.frameW / cfg.frameH);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sheet, 0, 0, cfg.frameW, cfg.frameH, cx - dw / 2, cardY + 58 - dh, dw, dh);
+      } else {
+        ctx.fillStyle = ch.bodyColor;
+        ctx.fillRect(cx - 24, cardY + 8, 48, 48);
+      }
+      ctx.fillStyle = selected ? "#e2e8f0" : "#94a3b8";
       ctx.font = "bold 20px system-ui, sans-serif";
-      ctx.fillText(ch.name, cx, cardY + 76);
-      ctx.fillStyle = selected ? ch.accent : "#64748b";
-      ctx.font = "14px system-ui, sans-serif";
-      ctx.fillText(ch.attribute, cx, cardY + 96);
+      ctx.fillText(ch.name, cx, cardY + 82);
     }
 
     // Selected character's abilities.

@@ -8,6 +8,7 @@ import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } fr
 import { Level } from "./Level";
 import { Particles } from "./Particles";
 import { Pickup, type PickupConfig } from "./Pickup";
+import { showMvLink } from "./mvLink";
 import { type MeleeHit, Player } from "./Player";
 import { sound } from "./Sound";
 import { getSprite } from "./sprites";
@@ -64,6 +65,7 @@ export class PlayScene implements Scene {
   ) {
     this.stageDef = STAGES[Math.min(stageIndex, STAGES.length - 1)];
     this.character = CHARACTERS[characterId];
+    showMvLink(false); // hide the title's MV credit during play
     this.reset();
   }
 

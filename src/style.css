@@ -160,6 +160,29 @@ body.touch .tc-menu {
   font-size: 13px;
 }
 
+/* ---- Source music-video credit link (title screen only) ---- */
+#mv-link {
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: 92vw;
+  padding: 6px 14px;
+  border-radius: 9px;
+  background: rgba(2, 6, 23, 0.74);
+  color: #93c5fd;
+  font: 13px system-ui, sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#mv-link:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+
 /* ---- Rotate hint (portrait phones) ---- */
 .rotate-hint {
   display: none;
