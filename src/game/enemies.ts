@@ -272,6 +272,7 @@ export class Brute extends Enemy {
   private static readonly SPEED = 46;
   private chargeTimer = 2 + Math.random() * 2;
   private charging = 0;
+  private fireTimer = 1.4;
 
   constructor(x: number, groundY: number) {
     super(x, groundY - 96, 14, 600);
@@ -292,6 +293,32 @@ export class Brute extends Enemy {
     this.x += this.facing * speed * ctx.dt;
     this.x = clamp(this.x, 0, ctx.level.width - this.w);
     this.fallAndLand(ctx);
+
+    // Ranged frost volley when not mid-charge and the player is in sight.
+    this.fireTimer -= ctx.dt;
+    const dx = Math.abs(ctx.playerCenter.x - this.center.x);
+    if (this.charging <= 0 && this.fireTimer <= 0 && dx < 540) {
+      this.fireTimer = 2.4 + Math.random() * 1.4;
+      this.castFrost(ctx);
+    }
+  }
+
+  /** A three-way spread of frost orbs aimed at the player. */
+  private castFrost(ctx: EnemyContext): void {
+    const toPlayer = ctx.playerCenter.add(this.center.scale(-1)).normalized();
+    const aim = Math.atan2(toPlayer.y, toPlayer.x);
+    for (let i = -1; i <= 1; i++) {
+      const a = aim + i * 0.18;
+      ctx.fire(
+        new Bullet(this.center, new Vector2(Math.cos(a), Math.sin(a)).scale(250), {
+          color: "#a5f3fc",
+          radius: 8,
+          range: 540,
+          style: "light",
+        }),
+      );
+    }
+    ctx.audio.enemyShoot();
   }
 
   render(ctx: CanvasRenderingContext2D): void {

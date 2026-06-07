@@ -235,7 +235,6 @@ export class PlayScene implements Scene {
       this.handleEnemyBullets();
       this.handleContact();
     }
-    this.handleSpikes();
     this.handlePickups();
     this.cull();
 
@@ -515,13 +514,6 @@ export class PlayScene implements Scene {
     }
   }
 
-  private handleSpikes(): void {
-    const hurt = this.player.hurtBounds;
-    for (const s of this.level.spikes) {
-      if (hurt.intersects(s)) this.hitPlayer();
-    }
-  }
-
   private hitPlayer(): void {
     const before = this.player.hp;
     this.player.hit();
@@ -595,7 +587,6 @@ export class PlayScene implements Scene {
     ctx.save();
     ctx.translate(-Math.round(this.camera.x) + this.camera.shakeX, this.camera.shakeY);
     this.drawLevel(ctx);
-    this.drawSpikes(ctx);
     for (const p of this.pickups) p.render(ctx);
     for (const e of this.enemies) e.render(ctx);
     if (this.boss && this.boss.alive) this.boss.render(ctx);
@@ -954,23 +945,6 @@ export class PlayScene implements Scene {
     ctx.restore();
   }
 
-  private drawSpikes(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = "#cbd5e1";
-    for (const s of this.level.spikes) {
-      const teeth = Math.max(1, Math.floor(s.w / 14));
-      const tw = s.w / teeth;
-      for (let i = 0; i < teeth; i++) {
-        const x = s.x + i * tw;
-        ctx.beginPath();
-        ctx.moveTo(x, s.bottom);
-        ctx.lineTo(x + tw / 2, s.y);
-        ctx.lineTo(x + tw, s.bottom);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-  }
-
   private drawHud(ctx: CanvasRenderingContext2D): void {
     // --- top-left: HP (hearts), lives portrait, score ---
     const heart = getSprite("item_heart");
@@ -1183,9 +1157,9 @@ function toPickupConfig(def: PickupDef): PickupConfig {
 
 function rollDrop(): PickupConfig | null {
   const r = Math.random();
-  if (r < 0.1) return { kind: "weapon" };
-  if (r < 0.16) return { kind: "bomb" };
-  if (r < 0.24) return { kind: "health" };
-  if (r < 0.34) return { kind: "score", value: 200 };
+  if (r < 0.07) return { kind: "weapon" };
+  if (r < 0.12) return { kind: "bomb" };
+  if (r < 0.19) return { kind: "health" };
+  if (r < 0.27) return { kind: "score", value: 200 };
   return null;
 }

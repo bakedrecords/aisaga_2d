@@ -1,15 +1,12 @@
 import { Rect } from "../engine/Rect";
 import type { StageDef, StageTheme } from "./stages";
 
-const SPIKE_HEIGHT = 16;
-
 /** Static geometry for one stage, built from its data definition. */
 export class Level {
   readonly width: number;
   readonly groundY: number;
   readonly goalX: number;
   readonly solids: Rect[];
-  readonly spikes: Rect[];
   readonly theme: StageTheme;
   readonly isBossStage: boolean;
 
@@ -24,9 +21,6 @@ export class Level {
     for (const p of def.platforms) {
       this.solids.push(new Rect(p.x, this.groundY - p.aboveGround, p.w, 24));
     }
-
-    this.spikes = def.hazards.map(
-      (h) => new Rect(h.x, this.groundY - SPIKE_HEIGHT, h.w, SPIKE_HEIGHT),
-    );
+    // Ground spikes are disabled for now — no art for them yet.
   }
 }
