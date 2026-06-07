@@ -152,6 +152,18 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       damage: 1, radius: 3, color: "#67e8f9", range: 540, ammo: 40,
     },
     bomb: { kind: "timestop", duration: 3 },
+    // Sliced from charD.png: idle / run / pistol(shoot) / m.gun(magic) / timestop(bomb).
+    sprite: {
+      frameW: 186, frameH: 107, fps: 8,
+      anims: {
+        idle: [3],
+        run: [4, 5, 6, 7, 8],
+        jump: [8],
+        shoot: [9, 10, 11, 12],
+        magic: [13, 14, 15, 16],
+        bomb: [17, 18], // time-stop cast pose (frame 19 is the clock effect)
+      },
+    },
   },
   E: {
     id: "E",
