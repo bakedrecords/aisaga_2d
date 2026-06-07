@@ -49,7 +49,7 @@ export interface Character {
 export const CHARACTERS: Record<CharacterId, Character> = {
   A: {
     id: "A",
-    name: "A",
+    name: "Matenrou",
     attribute: "炎",
     bodyColor: "#4ade80",
     accent: "#fb923c",
@@ -78,7 +78,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
   },
   B: {
     id: "B",
-    name: "B",
+    name: "Eita",
     attribute: "闇",
     bodyColor: "#8b5cf6",
     accent: "#a78bfa",
@@ -107,7 +107,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
   },
   C: {
     id: "C",
-    name: "C",
+    name: "Ayase",
     attribute: "光",
     bodyColor: "#fcd34d",
     accent: "#fef08a",
@@ -137,7 +137,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
   },
   D: {
     id: "D",
-    name: "D",
+    name: "Tsukahara",
     attribute: "時空",
     bodyColor: "#22d3ee",
     accent: "#67e8f9",
@@ -155,15 +155,15 @@ export const CHARACTERS: Record<CharacterId, Character> = {
   },
   E: {
     id: "E",
-    name: "E",
+    name: "Sae",
     attribute: "物理",
     bodyColor: "#cbd5e1",
     accent: "#94a3b8",
     // Close-range katana: a 90° arc (aimable up) that one-shots weak enemies.
     normal: {
       name: "KATANA", fireDelay: 0.3, pellets: 0, spread: 0, speed: 0,
-      damage: 3, radius: 0, color: "#e2e8f0", range: 132, ammo: 0,
-      melee: { arc: Math.PI / 2, range: 132 },
+      damage: 3, radius: 0, color: "#e2e8f0", range: 106, ammo: 0,
+      melee: { arc: Math.PI / 2, range: 106 },
     },
     // Shuriken: a strong ranged shot (double A's normal), limited ammo.
     special: {
