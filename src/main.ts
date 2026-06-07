@@ -30,6 +30,12 @@ import bruteUrl from "./game/assets/brute.png";
 import bossUrl from "./game/assets/boss.png";
 import miasmaEUrl from "./game/assets/miasmaE.png";
 import lightningEUrl from "./game/assets/lightningE.png";
+import stage1BgUrl from "./game/assets/stage1_bg.png";
+import stage2BgUrl from "./game/assets/stage2_bg.png";
+import stage3BgUrl from "./game/assets/stage3_bg.png";
+import stage1FloorUrl from "./game/assets/stage1_floor.png";
+import stage2FloorUrl from "./game/assets/stage2_floor.png";
+import stage3FloorUrl from "./game/assets/stage3_floor.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -62,6 +68,12 @@ loadSprite("brute", bruteUrl);
 loadSprite("boss", bossUrl);
 loadSprite("miasmaE", miasmaEUrl);
 loadSprite("lightningE", lightningEUrl);
+loadSprite("stage1_bg", stage1BgUrl);
+loadSprite("stage2_bg", stage2BgUrl);
+loadSprite("stage3_bg", stage3BgUrl);
+loadSprite("stage1_floor", stage1FloorUrl);
+loadSprite("stage2_floor", stage2FloorUrl);
+loadSprite("stage3_floor", stage3FloorUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {

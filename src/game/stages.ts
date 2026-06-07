@@ -6,6 +6,11 @@ export interface StageTheme {
   hill: string; // near parallax layer
   ground: string;
   edge: string;
+  /** Sprite id for the scrolling scenic backdrop (panorama). Falls back to the
+   *  procedural parallax shapes when the image hasn't loaded / isn't set. */
+  bg?: string;
+  /** Sprite id for the seamless floor strip tiled along the ground. */
+  floor?: string;
 }
 
 export interface PlatformDef {
@@ -40,10 +45,11 @@ export interface StageDef {
 
 export const STAGES: StageDef[] = [
   {
-    name: "STAGE 1 — JUNGLE",
+    name: "STAGE 1 — 路地裏",
     width: 7800,
     theme: {
-      sky: "#1e293b", far: "#0a2e22", hill: "#14532d", ground: "#3f3f46", edge: "#52525b",
+      sky: "#0b1020", far: "#0a2e22", hill: "#14532d", ground: "#3f3f46", edge: "#52525b",
+      bg: "stage1_bg", floor: "stage1_floor",
     },
     platforms: [
       { x: 360, aboveGround: 110, w: 160 },
@@ -94,10 +100,11 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    name: "STAGE 2 — RUINS",
+    name: "STAGE 2 — 市街地",
     width: 8700,
     theme: {
-      sky: "#1f2937", far: "#241d3a", hill: "#3b2f5e", ground: "#44403c", edge: "#57534e",
+      sky: "#0a0f24", far: "#241d3a", hill: "#3b2f5e", ground: "#44403c", edge: "#57534e",
+      bg: "stage2_bg", floor: "stage2_floor",
     },
     platforms: [
       { x: 300, aboveGround: 130, w: 150 },
@@ -154,10 +161,11 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    name: "STAGE 3 — FORTRESS",
+    name: "STAGE 3 — 廃墟",
     width: 5100,
     theme: {
-      sky: "#1c1917", far: "#2a1320", hill: "#3f1d2e", ground: "#3f3f46", edge: "#52525b",
+      sky: "#0c0a14", far: "#2a1320", hill: "#3f1d2e", ground: "#3f3f46", edge: "#52525b",
+      bg: "stage3_bg", floor: "stage3_floor",
     },
     platforms: [
       { x: 300, aboveGround: 130, w: 180 },

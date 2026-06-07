@@ -809,8 +809,44 @@ export class PlayScene implements Scene {
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {
+    const bg = this.level.theme.bg ? getSprite(this.level.theme.bg) : undefined;
+    if (bg) {
+      this.drawScrollingBg(ctx, bg, 0.25);
+      return;
+    }
+    // Fallback: procedural rolling hills until the panorama image is ready.
     this.parallaxLayer(ctx, this.level.theme.far, 0.2, 300, 560, 80);
     this.parallaxLayer(ctx, this.level.theme.hill, 0.4, 240, 480, 30);
+  }
+
+  /** Tile the scenic panorama across the screen, scrolling at `factor` × the
+   *  camera. Every other copy is mirrored so the repeats meet seamlessly. */
+  private drawScrollingBg(
+    ctx: CanvasRenderingContext2D,
+    img: CanvasImageSource,
+    factor: number,
+  ): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const destH = this.viewHeight;
+    const tw = width * (destH / height);
+    const scroll = this.camera.x * factor;
+    const first = Math.floor(scroll / tw) - 1;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    for (let i = first; i * tw - scroll < this.viewWidth; i++) {
+      const x = i * tw - scroll;
+      const mirror = ((i % 2) + 2) % 2 === 1;
+      if (mirror) {
+        ctx.save();
+        ctx.translate(x + tw, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0, tw, destH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, x, 0, tw, destH);
+      }
+    }
+    ctx.restore();
   }
 
   private parallaxLayer(
@@ -832,11 +868,32 @@ export class PlayScene implements Scene {
   }
 
   private drawLevel(ctx: CanvasRenderingContext2D): void {
+    const floor = this.level.theme.floor ? getSprite(this.level.theme.floor) : undefined;
     for (const solid of this.level.solids) {
+      const isGround = solid.x === 0 && solid.y === this.level.groundY;
+      if (isGround && floor) {
+        this.drawFloor(ctx, floor, solid);
+        continue;
+      }
       ctx.fillStyle = this.level.theme.ground;
       ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
       ctx.fillStyle = this.level.theme.edge;
       ctx.fillRect(solid.x, solid.y, solid.w, 6);
+    }
+  }
+
+  /** Tile the seamless floor strip across the visible span of the ground. */
+  private drawFloor(ctx: CanvasRenderingContext2D, img: CanvasImageSource, solid: { x: number; y: number; w: number; h: number; right: number }): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const ftw = width * (solid.h / height);
+    ctx.fillStyle = "#0a0a0f"; // base behind any sub-pixel seam
+    ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
+    ctx.imageSmoothingEnabled = true;
+    const left = Math.max(solid.x, this.camera.x - ftw);
+    const right = Math.min(solid.right, this.camera.x + this.viewWidth + ftw);
+    const first = Math.floor((left - solid.x) / ftw);
+    for (let i = first; solid.x + i * ftw < right; i++) {
+      ctx.drawImage(img, solid.x + i * ftw, solid.y, ftw, solid.h);
     }
   }
 
