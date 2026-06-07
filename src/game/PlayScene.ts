@@ -1,6 +1,7 @@
 import type { Input } from "../engine/Input";
 import type { Scene, SceneManager } from "../engine/Scene";
-import type { Bullet } from "./Bullet";
+import { Vector2 } from "../engine/Vector2";
+import { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
 import { CHARACTERS, type Character, type CharacterId } from "./characters";
 import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
@@ -21,6 +22,8 @@ const SUMMON_TIME = 1.0;
 const DASH_SHOCK_TIME = 0.35;
 const HEAL_FX_TIME = 0.85;
 const TIME_RIPPLE_TIME = 0.6;
+const HAMMER_FX_TIME = 0.5;
+const SUMMON_LASER_GAP = 0.16; // delay before the second summon laser
 
 type State = "playing" | "won" | "lost" | "complete";
 
@@ -39,7 +42,8 @@ export class PlayScene implements Scene {
   private particles = new Particles();
   private bombFlash = 0;
   private bombFire: { cx: number; cy: number; t: number } | null = null;
-  private summonFx: { cx: number; footY: number; t: number } | null = null;
+  private summonFx: { cx: number; footY: number; face: number; t: number; shots: number } | null = null;
+  private hammerFx: { cx: number; groundY: number; t: number } | null = null;
   private dashShock: { cx: number; cy: number; t: number } | null = null;
   private healFx: { cx: number; cy: number; t: number } | null = null;
   private timeRipple: { cx: number; cy: number; t: number } | null = null;
@@ -108,6 +112,7 @@ export class PlayScene implements Scene {
     this.bombFlash = 0;
     this.bombFire = null;
     this.summonFx = null;
+    this.hammerFx = null;
     this.dashShock = null;
     this.healFx = null;
     this.timeRipple = null;
@@ -168,6 +173,8 @@ export class PlayScene implements Scene {
         this.camera.shake(10);
       } else if (bomb.kind === "summon") {
         this.summonDemon();
+      } else if (bomb.kind === "hammer") {
+        this.hammerSlam(bomb.damage);
       } else {
         this.player.startDash();
         this.dashDamage = bomb.damage;
@@ -220,7 +227,16 @@ export class PlayScene implements Scene {
     }
     if (this.summonFx) {
       this.summonFx.t += dt;
+      // The second laser fires a beat after the first.
+      if (this.summonFx.shots < 2 && this.summonFx.t >= SUMMON_LASER_GAP) {
+        this.fireSummonLaser(this.summonFx.face);
+        this.summonFx.shots = 2;
+      }
       if (this.summonFx.t >= SUMMON_TIME) this.summonFx = null;
+    }
+    if (this.hammerFx) {
+      this.hammerFx.t += dt;
+      if (this.hammerFx.t >= HAMMER_FX_TIME) this.hammerFx = null;
     }
     if (this.dashShock) {
       this.dashShock.t += dt;
@@ -323,20 +339,50 @@ export class PlayScene implements Scene {
     this.bombFlash = 0.18;
   }
 
-  /** B's bomb: summon a demon — a screen-wide dark blast under the summon art. */
+  /** B's bomb: summon a demon and fire two forward lasers (boss-buster). */
   private summonDemon(): void {
     const c = this.player.center;
-    const radius = Math.hypot(this.viewWidth, this.viewHeight) * 0.55;
+    const face = this.player.facingDir;
+    // A lighter shock clears nearby foes; the forward lasers do the heavy hits.
+    const radius = Math.hypot(this.viewWidth, this.viewHeight) * 0.4;
     for (const e of this.targets()) {
-      if (e.alive && e.center.add(c.scale(-1)).length <= radius) {
-        this.hurtEnemy(e, BOMB_DAMAGE);
-      }
+      if (e.alive && e.center.add(c.scale(-1)).length <= radius) this.hurtEnemy(e, 5);
     }
+    this.summonFx = { cx: c.x, footY: c.y + 22, face, t: 0, shots: 1 };
+    this.fireSummonLaser(face);
     this.particles.burst(c, "#a78bfa", 40, 360, { life: 0.7, size: 5, gravity: -40 });
     this.particles.burst(c, "#6d28d9", 30, 300, { life: 0.7, size: 5, gravity: -10 });
-    this.summonFx = { cx: c.x, footY: c.y + 22, t: 0 };
     sound.explosion();
     this.camera.shake(26);
+  }
+
+  /** A heavy piercing laser straight ahead — the summon's main damage. */
+  private fireSummonLaser(face: number): void {
+    const pos = new Vector2(this.player.centerX + face * 22, this.player.center.y - 2);
+    const vel = new Vector2(face, 0).scale(1400);
+    this.playerBullets.push(
+      new Bullet(pos, vel, { radius: 11, damage: 16, color: "#0b1020", range: 1500, pierce: true, style: "laser" }),
+    );
+    sound.shoot("laser");
+  }
+
+  /** E's bomb: a hammer ground slam — big damage to grounded enemies + shake. */
+  private hammerSlam(damage: number): void {
+    const gy = this.level.groundY;
+    const reach = this.viewWidth * 0.7; // the ground shockwave's horizontal range
+    for (const e of this.targets()) {
+      // Grounded enemies within the shockwave; flyers (off the ground) are spared.
+      const grounded = e.bounds.bottom >= gy - 36;
+      if (e.alive && grounded && Math.abs(e.center.x - this.player.centerX) <= reach) {
+        this.hurtEnemy(e, damage);
+      }
+    }
+    this.hammerFx = { cx: this.player.centerX, groundY: gy, t: 0 };
+    const at = new Vector2(this.player.centerX, gy - 6);
+    this.particles.burst(at, "#a78bfa", 40, 460, { life: 0.6, size: 5, gravity: 240 });
+    this.particles.burst(at, "#c4b5fd", 26, 320, { life: 0.55, size: 4, gravity: 180 });
+    sound.explosion();
+    this.camera.shake(40); // a heavy, screen-rattling impact
   }
 
   /** Apply a melee swing (a forward arc) to enemies in range. */
@@ -517,10 +563,12 @@ export class PlayScene implements Scene {
     this.particles.render(ctx);
     this.drawDashFx(ctx);
     this.drawTimeRipple(ctx);
+    this.drawSummonDark(ctx); // dim the scene so the summon/lasers pop
     this.player.render(ctx);
     this.drawBombFire(ctx);
     this.drawSummon(ctx);
     this.drawHealFx(ctx);
+    this.drawHammerFx(ctx);
     ctx.restore();
 
     if (this.bombFlash > 0) {
@@ -704,6 +752,47 @@ export class PlayScene implements Scene {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  /** Cinematic dim while B's summon runs; the bright art shows through. */
+  private drawSummonDark(ctx: CanvasRenderingContext2D): void {
+    if (!this.summonFx) return;
+    const p = this.summonFx.t / SUMMON_TIME;
+    const a = p < 0.15 ? (p / 0.15) * 0.5 : p > 0.6 ? (1 - (p - 0.6) / 0.4) * 0.5 : 0.5;
+    if (a <= 0) return;
+    ctx.fillStyle = `rgba(6, 2, 16, ${Math.max(0, a)})`;
+    ctx.fillRect(
+      Math.round(this.camera.x) - this.camera.shakeX - 4,
+      -this.camera.shakeY - 4,
+      this.viewWidth + 8,
+      this.viewHeight + 8,
+    );
+  }
+
+  /** E's hammer slam: a ground shockwave plus an upward impact burst. */
+  private drawHammerFx(ctx: CanvasRenderingContext2D): void {
+    if (!this.hammerFx) return;
+    const { cx, groundY, t } = this.hammerFx;
+    const p = t / HAMMER_FX_TIME;
+    ctx.imageSmoothingEnabled = false;
+    const shock = getSprite("shockE");
+    if (shock) {
+      const { width, height } = shock as unknown as { width: number; height: number };
+      const w = 260 * (0.4 + p), h = w * (height / width);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.drawImage(shock, cx - w / 2, groundY - h * 0.6, w, h);
+      ctx.restore();
+    }
+    const hammer = getSprite("hammerE");
+    if (hammer) {
+      const { width, height } = hammer as unknown as { width: number; height: number };
+      const h = 130 * (0.6 + 0.7 * Math.min(1, p / 0.4)), w = h * (width / height);
+      ctx.save();
+      ctx.globalAlpha = p < 0.1 ? p / 0.1 : Math.max(0, 1 - (p - 0.1) / 0.9);
+      ctx.drawImage(hammer, cx - w / 2, groundY - h + 8, w, h); // erupts up from the ground
+      ctx.restore();
+    }
   }
 
   private drawParallax(ctx: CanvasRenderingContext2D): void {

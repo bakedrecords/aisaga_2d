@@ -28,8 +28,9 @@ export type Bomb =
   | { kind: "shotgun"; shot: WeaponSpec } // long-range forward shots
   | { kind: "heal"; amount: number } // restore HP instead of attacking
   | { kind: "timestop"; duration: number } // freeze enemies and their shots
-  | { kind: "summon" } // summon a demon: a screen-wide dark blast
-  | { kind: "dash"; damage: number }; // invincible forward charge
+  | { kind: "summon" } // summon a demon plus forward lasers (boss-buster)
+  | { kind: "dash"; damage: number } // invincible forward charge
+  | { kind: "hammer"; damage: number }; // ground slam: big damage to grounded foes
 
 export interface Character {
   id: CharacterId;
@@ -165,7 +166,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
       name: "SHURIKEN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
       damage: 2, radius: 4, color: "#e2e8f0", range: 440, ammo: 12, style: "shuriken",
     },
-    bomb: { kind: "dash", damage: 10 },
+    bomb: { kind: "hammer", damage: 14 },
     // Sliced from charE.png: idle ×4, run ×6, 日本刀 ×4, 手裏剣 ×3.
     sprite: {
       frameW: 308, frameH: 122, fps: 8,
