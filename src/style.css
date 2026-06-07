@@ -183,22 +183,66 @@ body.touch .tc-menu {
   text-decoration: underline;
 }
 
-/* ---- Rotate hint (portrait phones) ---- */
-.rotate-hint {
+/* ---- Portrait "Game Boy" layout: screen on top, control deck below ---- */
+.deck {
   display: none;
 }
 
-@media (orientation: portrait) and (pointer: coarse) {
-  body.touch .rotate-hint {
-    display: grid;
-    place-items: center;
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background: #020617;
-    color: #e2e8f0;
-    font-size: 20px;
-    text-align: center;
-    padding: 24px;
-  }
+body.portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+body.portrait #game {
+  margin-top: calc(8px + env(safe-area-inset-top));
+  border-color: #233047;
+}
+
+body.portrait .deck {
+  display: block;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--deck-h, 320px);
+  background: linear-gradient(180deg, #0e1626, #05080f);
+  border-top: 3px solid #233047;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.05);
+  z-index: 4;
+}
+
+/* Move the touch controls into the deck (the extra class beats the
+   landscape rules above on specificity). */
+body.touch.portrait .tc-dpad {
+  left: calc(16px + env(safe-area-inset-left));
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  width: 178px;
+  height: 178px;
+}
+
+body.touch.portrait .tc-actions {
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  gap: 16px;
+  align-items: flex-end;
+}
+
+body.touch.portrait .tc-special {
+  right: calc(36px + env(safe-area-inset-right));
+  bottom: calc(132px + env(safe-area-inset-bottom));
+}
+
+body.touch.portrait .tc-menu {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(var(--deck-h) - 40px);
+  transform: translateX(-50%);
+}
+
+/* Keep the credit link in the gap between screen and deck. */
+body.portrait #mv-link {
+  bottom: calc(var(--deck-h) + 8px);
 }

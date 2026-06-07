@@ -132,13 +132,40 @@ if (!canvas) {
 
 const TOUCH = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-/** Scale the canvas to fit the screen while preserving its 4:3 aspect ratio. */
+/** Size the canvas to the screen. In portrait on a phone we lay it out
+ *  Game-Boy style — the screen pinned to the top with a control deck below;
+ *  otherwise it fills the screen preserving the 4:3 aspect ratio. */
 function fitCanvas(c: HTMLCanvasElement): void {
   const aspect = c.width / c.height;
-  let w = window.innerWidth;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const portrait = TOUCH && vh > vw;
+  document.body.classList.toggle("portrait", portrait);
+
+  if (portrait) {
+    // Screen pinned to the top; the deck fills everything beneath it (so the
+    // controls sit at the bottom, under the thumbs). Shrink the screen only if
+    // needed to guarantee a usable deck height.
+    const topMargin = 8;
+    const minDeck = 250;
+    let w = vw;
+    let h = w / aspect;
+    const maxCanvasH = vh - topMargin - minDeck;
+    if (h > maxCanvasH) {
+      h = maxCanvasH;
+      w = h * aspect;
+    }
+    const deckH = Math.round(vh - h - topMargin);
+    document.documentElement.style.setProperty("--deck-h", `${deckH}px`);
+    c.style.width = `${Math.round(w)}px`;
+    c.style.height = `${Math.round(h)}px`;
+    return;
+  }
+
+  let w = vw;
   let h = w / aspect;
-  if (h > window.innerHeight) {
-    h = window.innerHeight;
+  if (h > vh) {
+    h = vh;
     w = h * aspect;
   }
   if (!TOUCH) {
