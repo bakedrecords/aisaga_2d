@@ -55,6 +55,7 @@ export class Player {
   private animTime = 0; // drives sprite animation frame selection
   private shootFx = 0; // brief timer so the "shoot" pose lingers after firing
   private bombPose = 0; // shows the bomb charge pose while > 0
+  private bombPoseDur = 0; // total wind-up length, for picking the pose phase
   private actionLock = 0; // ignores move/jump/shoot input while > 0 (bomb wind-up)
 
   hp = MAX_HP;
@@ -149,6 +150,7 @@ export class Player {
   /** Begin a bomb wind-up: hold the charge pose and ignore input for `dur`. */
   chargeBomb(dur: number): void {
     this.bombPose = dur;
+    this.bombPoseDur = dur;
     this.actionLock = dur;
   }
 
@@ -348,9 +350,13 @@ export class Player {
   render(ctx: CanvasRenderingContext2D): void {
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) return;
 
-    // A standalone pose overlay during the bomb wind-up (e.g. E's hammer).
-    if (this.bombPose > 0 && this.character.bombPoseSprite) {
-      const ov = getSprite(this.character.bombPoseSprite);
+    // Standalone pose overlay during the bomb wind-up (e.g. E's hammer),
+    // stepping through the poses across the charge (raise -> swing down).
+    const poses = this.character.bombPoseSprites;
+    if (this.bombPose > 0 && poses && poses.length > 0) {
+      const progress = this.bombPoseDur > 0 ? 1 - this.bombPose / this.bombPoseDur : 0;
+      const idx = Math.min(poses.length - 1, Math.floor(progress * poses.length));
+      const ov = getSprite(poses[idx]);
       if (ov) {
         this.drawOverlayPose(ctx, ov);
         return;

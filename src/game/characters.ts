@@ -43,7 +43,7 @@ export interface Character {
   bomb: Bomb; // button K
   airJumps?: number; // extra mid-air jumps (e.g. 1 = double jump)
   sprite?: SpriteConfig; // pixel-art sheet; falls back to a coloured box if absent
-  bombPoseSprite?: string; // standalone sprite drawn during the bomb wind-up
+  bombPoseSprites?: string[]; // standalone poses shown across the bomb wind-up
 }
 
 export const CHARACTERS: Record<CharacterId, Character> = {
@@ -182,7 +182,8 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         magic: [14, 15, 16], // shuriken throw
       },
     },
-    bombPoseSprite: "hammerPoseE", // raise the hammer during the bomb charge
+    // Wind-up: raise the hammer (first half) then swing it down (second half).
+    bombPoseSprites: ["hammerPoseE", "hammerSlamE"],
   },
 };
 
