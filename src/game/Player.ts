@@ -391,16 +391,37 @@ export class Player {
     }
   }
 
-  /** Knocked-out pose: the sprite tipped a quarter-turn so it lies flat on the
-   *  ground, pivoting on the feet. Shown during the brief death pause. */
+  /** Knocked-out pose. Uses the character's collapsed "damage" frame from the
+   *  sheet (downB/C/D/E); characters without one (A) tip their upright sprite
+   *  over instead. */
   private drawDowned(ctx: CanvasRenderingContext2D): void {
     const cfg = this.character.sprite;
-    const sheet = cfg ? getSprite(this.character.id) : undefined;
     const cx = this.centerX;
     const footY = this.y + STAND_H;
+    const down = getSprite("down" + this.character.id);
+    if (down && cfg) {
+      const { width, height } = down as unknown as { width: number; height: number };
+      const scale = (STAND_H * 1.3) / cfg.frameH; // same pixel scale as upright
+      const dw = width * scale;
+      const dh = height * scale;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      if (this.facing < 0) {
+        ctx.translate(cx + dw / 2, footY - dh);
+        ctx.scale(-1, 1);
+        ctx.drawImage(down, 0, 0, dw, dh);
+      } else {
+        ctx.drawImage(down, cx - dw / 2, footY - dh, dw, dh);
+      }
+      ctx.restore();
+      return;
+    }
+
+    // Fallback: tip the upright sprite a quarter-turn so it lies on the ground.
+    const sheet = cfg ? getSprite(this.character.id) : undefined;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.translate(cx, footY - 16); // lift the pivot so the body rests on the ground
+    ctx.translate(cx, footY - 16);
     ctx.rotate(this.facing > 0 ? -Math.PI / 2 : Math.PI / 2);
     if (cfg && sheet) {
       const drawH = STAND_H * 1.3;

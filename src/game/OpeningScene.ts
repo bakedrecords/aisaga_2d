@@ -7,20 +7,28 @@ import { TitleScene } from "./TitleScene";
 
 const SKIP_KEYS = ["Space", "Enter", "KeyJ", "KeyK", "ArrowUp"];
 const EXPL = ["fx_expl0", "fx_expl1", "fx_expl2", "fx_expl3"];
-const TITLE = "愛をさがしだせ！";
+
+// Which sheet frame + signature effect to show for each hero's skill beat.
+const HERO: Record<CharacterId, { frame: number; fx: string }> = {
+  A: { frame: 16, fx: "fire" },
+  B: { frame: 15, fx: "summon" },
+  C: { frame: 12, fx: "heal" },
+  D: { frame: 17, fx: "time" },
+  E: { frame: 11, fx: "slash" },
+};
 
 // Phase boundaries (seconds).
-const P_TITLE = 3.0;
-const P_HEROES = 8.0;
-const P_THREAT = 10.6;
-const P_CLASH = 12.3;
-const TOTAL = 14.0;
+const P_CITY = 2.6;
+const P_DRAGON = 5.4;
+const HERO_LEN = 1.3;
+const P_HEROES = P_DRAGON + HERO_LEN * 5; // 11.9
+const TOTAL = P_HEROES + 0.4;
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-/** A short, skippable opening cinematic assembled from the game's sprites —
- *  title card, the five heroes, the looming boss, an explosive clash, then the
- *  logo — before handing off to the character-select title screen. */
+/** A short, text-free opening cinematic built from the game's sprites: a sweep
+ *  of the city, the looming dragon, then each of the five heroes flashing their
+ *  signature skill before vanishing — handing off to the character select. */
 export class OpeningScene implements Scene {
   private t = 0;
 
@@ -40,174 +48,193 @@ export class OpeningScene implements Scene {
     ctx.fillStyle = "#05060f";
     ctx.fillRect(0, 0, w, h);
     const t = this.t;
-    if (t < P_TITLE) this.shotTitle(ctx, w, h, t);
-    else if (t < P_HEROES) this.shotHeroes(ctx, w, h, t - P_TITLE);
-    else if (t < P_THREAT) this.shotThreat(ctx, w, h, t - P_HEROES);
-    else if (t < P_CLASH) this.shotClash(ctx, w, h, t - P_THREAT);
-    else this.shotLogo(ctx, w, h, t - P_CLASH);
+    if (t < P_CITY) this.shotCity(ctx, w, h, t);
+    else if (t < P_DRAGON) this.shotDragon(ctx, w, h, t - P_CITY);
+    else if (t < P_HEROES) {
+      const k = Math.floor((t - P_DRAGON) / HERO_LEN);
+      this.shotHero(ctx, w, h, CHARACTER_ORDER[k], (t - P_DRAGON) - k * HERO_LEN);
+    } else {
+      // fade to the character-select screen
+      ctx.fillStyle = `rgba(0,0,0,${clamp01((t - P_HEROES) / 0.4)})`;
+      ctx.fillRect(0, 0, w, h);
+    }
 
-    // Cinematic letterbox + a skip hint.
+    // Cinematic letterbox + skip hint (no other text).
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, 42);
     ctx.fillRect(0, h - 42, w, 42);
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = 0.5;
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "13px system-ui, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText("SKIP ▶ Space / タップ", w - 14, h - 16);
+    ctx.fillText("SKIP ▶", w - 14, h - 16);
     ctx.textAlign = "left";
     ctx.globalAlpha = 1;
   }
 
   // ---- shots --------------------------------------------------------------
 
-  private shotTitle(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage2_bg", w, h, t, 16, clamp01(t / 1.2));
-    ctx.fillStyle = "rgba(5,8,20,0.4)";
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.textAlign = "center";
-    ctx.globalAlpha = clamp01((t - 0.4) / 1.0);
-    const scale = 0.82 + 0.18 * clamp01((t - 0.4) / 1.0);
-    ctx.shadowColor = "#16a34a";
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = "#4ade80";
-    ctx.font = `bold ${Math.round(46 * scale)}px system-ui, sans-serif`;
-    ctx.fillText(TITLE, w / 2, h / 2 - 4);
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = clamp01((t - 1.3) / 1.0);
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "18px system-ui, sans-serif";
-    ctx.fillText("銀幕一楼と TIMECAFE", w / 2, h / 2 + 36);
-    ctx.globalAlpha = 1;
-    ctx.textAlign = "left";
-    this.fadeOut(ctx, w, h, t, P_TITLE);
-  }
-
-  private shotHeroes(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage1_bg", w, h, t + 6, 12, 0.6);
-    ctx.fillStyle = "rgba(8,10,24,0.5)";
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.textAlign = "center";
-    ctx.globalAlpha = clamp01(t / 0.5);
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = "bold 22px system-ui, sans-serif";
-    ctx.fillText("― 5人の戦士 ―", w / 2, 78);
-    ctx.globalAlpha = 1;
-
-    const order = CHARACTER_ORDER;
-    const n = order.length;
-    const slot = 0.86;
-    const spacing = 150;
-    const startX = w / 2 - (spacing * (n - 1)) / 2;
-    const rowY = h / 2 + 96;
-    for (let i = 0; i < n; i++) {
-      const intro = t - (0.3 + i * slot);
-      if (intro < 0) continue;
-      const id = order[i];
-      const ch = CHARACTERS[id];
-      const cx = startX + i * spacing;
-      const ease = clamp01(intro / 0.4);
-      const a = clamp01(intro / 0.3);
-      const yoff = (1 - ease) * 64;
-      this.drawChar(ctx, id, cx, rowY + yoff, 122, a);
-      if (intro < 0.36) this.drawFx(ctx, "fx_hit", cx, rowY + yoff - 50, 1.4, clamp01(1 - intro / 0.36));
-      ctx.textAlign = "center";
-      ctx.globalAlpha = a;
-      ctx.fillStyle = ch.accent;
-      ctx.font = "bold 18px system-ui, sans-serif";
-      ctx.fillText(ch.name, cx, rowY + 26);
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "12px system-ui, sans-serif";
-      ctx.fillText(ch.attribute, cx, rowY + 44);
-      ctx.globalAlpha = 1;
+  private shotCity(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
+    this.drawBg(ctx, "stage2_bg", w, h, t, 22, clamp01(t / 0.8));
+    // a couple of distant flashes for life
+    if (Math.sin(t * 5) > 0.9) {
+      this.drawFx(ctx, EXPL[2], w * 0.3, h * 0.45, 1.2, 0.5);
     }
-    ctx.textAlign = "left";
-    this.fadeOut(ctx, w, h, t, P_HEROES - P_TITLE);
+    this.fadeEdges(ctx, w, h, t, P_CITY);
   }
 
-  private shotThreat(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage3_bg", w, h, t + 2, 8, clamp01(t / 0.5));
+  private shotDragon(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
+    this.drawBg(ctx, "stage3_bg", w, h, t + 2, 9, clamp01(t / 0.5));
     const boss = getSprite("boss");
     if (boss) {
       const { width, height } = boss as unknown as { width: number; height: number };
-      const ease = clamp01(t / 1.2);
-      const bh = 300 + 70 * ease;
+      const ease = clamp01(t / 1.3);
+      const bh = 300 + 80 * ease;
       const bw = bh * (width / height);
-      const bx = w * 0.6 + (1 - ease) * 220;
+      const bx = w * 0.58 + (1 - ease) * 240;
       ctx.save();
       ctx.globalAlpha = clamp01(t / 0.6);
       ctx.imageSmoothingEnabled = false;
-      ctx.translate(bx + bw / 2, 0); // dragon faces the heroes (mirror)
+      ctx.translate(bx + bw / 2, 0); // mirror so it faces the heroes
       ctx.scale(-1, 1);
       ctx.drawImage(boss, 0, 0, width, height, 0, h - 42 - bh, bw, bh);
       ctx.restore();
     }
-    // Sporadic lightning flashes.
-    if (t < 0.18 || Math.sin(t * 9.2) > 0.86) {
+    if (t < 0.18 || Math.sin(t * 9.5) > 0.85) {
       ctx.fillStyle = "rgba(200,210,255,0.5)";
       ctx.fillRect(0, 0, w, h);
     }
-    ctx.textAlign = "center";
-    ctx.globalAlpha = clamp01((t - 0.5) / 0.6);
-    ctx.shadowColor = "#7c3aed";
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = "#c084fc";
-    ctx.font = "bold 30px system-ui, sans-serif";
-    ctx.fillText("強大な敵が待ち受ける", w / 2, 104);
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-    ctx.textAlign = "left";
-    this.fadeOut(ctx, w, h, t, P_THREAT - P_HEROES);
+    this.fadeEdges(ctx, w, h, t, P_DRAGON - P_CITY);
   }
 
-  private shotClash(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage2_bg", w, h, t, 80, 0.85);
-    ctx.fillStyle = "rgba(0,0,0,0.32)";
+  private shotHero(ctx: CanvasRenderingContext2D, w: number, h: number, id: CharacterId, lt: number): void {
+    const ch = CHARACTERS[id];
+    const cx = w / 2;
+    const footY = h * 0.82;
+    const inA = clamp01(lt / 0.22);
+    const outA = 1 - clamp01((lt - 0.98) / 0.3);
+    const alpha = Math.min(inA, outA);
+    const skillT = clamp01((lt - 0.22) / 0.72);
+
+    // accent spotlight behind the hero
+    const g = ctx.createRadialGradient(cx, footY - 80, 30, cx, footY - 80, h * 0.7);
+    g.addColorStop(0, this.tint(ch.accent, 0.5 * alpha));
+    g.addColorStop(1, "rgba(5,6,15,0)");
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 6; i++) {
-      const px = (i * 137 + 70) % w;
-      const py = 120 + ((i * 91) % 260);
-      const ph = ((t * 2.2 + i * 0.27) % 1);
-      this.drawFx(ctx, EXPL[Math.min(3, Math.floor(ph * 4))], px, py, 1.6, clamp01(1.2 - ph));
-    }
-    // flash into the logo
-    if (t > P_CLASH - P_THREAT - 0.4) {
-      ctx.fillStyle = `rgba(255,255,255,${clamp01((t - (P_CLASH - P_THREAT - 0.4)) / 0.4)})`;
+
+    // hero entrance slide
+    const yoff = (1 - clamp01(lt / 0.3)) * 40;
+    this.drawHeroFx(ctx, id, cx, footY - yoff, skillT, alpha, "back");
+    this.drawCharFrame(ctx, id, HERO[id].frame, cx, footY - yoff, 240, alpha);
+    this.drawHeroFx(ctx, id, cx, footY - yoff, skillT, alpha, "front");
+
+    // vanish flash on the hero
+    if (lt > 0.98) {
+      const f = clamp01((lt - 0.98) / 0.3);
+      this.drawFx(ctx, "fx_hit", cx, footY - 90, 2.0 + f * 2, 1 - f);
+      ctx.fillStyle = this.tint("#ffffff", f * 0.4);
       ctx.fillRect(0, 0, w, h);
     }
   }
 
-  private shotLogo(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
-    this.drawBg(ctx, "stage2_bg", w, h, t + 4, 6, 0.45);
-    ctx.fillStyle = "rgba(5,6,15,0.5)";
-    ctx.fillRect(0, 0, w, h);
-    ctx.textAlign = "center";
-    ctx.shadowColor = "#16a34a";
-    ctx.shadowBlur = 24;
-    ctx.fillStyle = "#4ade80";
-    ctx.font = "bold 52px system-ui, sans-serif";
-    ctx.fillText(TITLE, w / 2, h / 2);
-    ctx.shadowBlur = 0;
-    if (Math.floor(t * 2) % 2 === 0) {
-      ctx.fillStyle = "#e2e8f0";
-      ctx.font = "bold 20px system-ui, sans-serif";
-      ctx.fillText("PRESS START", w / 2, h / 2 + 62);
+  /** Per-hero signature effect, split into a layer behind and in front of the
+   *  character so things like the summoned demon sit correctly. */
+  private drawHeroFx(ctx: CanvasRenderingContext2D, id: CharacterId, cx: number, footY: number, s: number, alpha: number, layer: "back" | "front"): void {
+    const fx = HERO[id].fx;
+    if (fx === "summon" && layer === "back") {
+      const demon = getSprite("demonB");
+      if (demon) {
+        const { width, height } = demon as unknown as { width: number; height: number };
+        const a = alpha * clamp01(s * 2);
+        const dh = 210;
+        const dw = dh * (width / height);
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(demon, cx - dw / 2, footY - dh - 40 + (1 - clamp01(s * 2)) * 40, dw, dh);
+        ctx.restore();
+      }
+      return;
     }
-    ctx.textAlign = "left";
-    // opening white flash settling in
-    if (t < 0.4) {
-      ctx.fillStyle = `rgba(255,255,255,${clamp01(1 - t / 0.4)})`;
-      ctx.fillRect(0, 0, w, h);
+    if (fx === "heal" && layer === "back") {
+      const pillar = getSprite("healPillar");
+      if (pillar) {
+        const { width, height } = pillar as unknown as { width: number; height: number };
+        const ph = 260 * clamp01(s * 1.6);
+        const pw = (ph * (width / height)) || 120;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(pillar, cx - pw / 2, footY - ph, pw, ph);
+        ctx.restore();
+      }
+      return;
+    }
+    if (fx === "fire" && layer === "back") {
+      // a blazing wall behind so the hero stays silhouetted in front
+      this.drawFx(ctx, EXPL[Math.min(3, Math.floor(s * 4))], cx, footY - 100, 3.0, alpha);
+      for (let i = 0; i < 4; i++) {
+        const a = i * 1.7 + s * 5;
+        this.drawFx(ctx, EXPL[(i + Math.floor(s * 4)) % 4], cx + Math.cos(a) * 105, footY - 90 + Math.sin(a) * 55, 1.4, alpha * 0.8);
+      }
+      return;
+    }
+    if (layer !== "front") return;
+
+    if (fx === "fire") {
+      this.drawFx(ctx, EXPL[Math.min(3, Math.floor(s * 4))], cx, footY - 22, 1.3, alpha * 0.95);
+    } else if (fx === "heal") {
+      this.drawFx(ctx, "healBurst", cx, footY - 80, 2.6, alpha);
+    } else if (fx === "summon") {
+      this.drawFx(ctx, "fx_hit", cx, footY - 110, 2.0, alpha * (1 - s));
+    } else if (fx === "time") {
+      ctx.save();
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const rp = (s + i * 0.25) % 1;
+        ctx.globalAlpha = alpha * (1 - rp);
+        ctx.strokeStyle = "#67e8f9";
+        ctx.beginPath();
+        ctx.arc(cx, footY - 70, 24 + rp * 190, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (fx === "slash") {
+      const slash = getSprite("slashE");
+      if (slash) {
+        const { width, height } = slash as unknown as { width: number; height: number };
+        const sw = 240;
+        const sh = sw * (height / width);
+        ctx.save();
+        ctx.globalAlpha = alpha * clamp01(1.5 - s * 1.5);
+        ctx.imageSmoothingEnabled = false;
+        ctx.translate(cx + 10, footY - 85);
+        ctx.rotate(-0.7 + s * 1.3);
+        ctx.drawImage(slash, -sw * 0.1, -sh / 2, sw, sh);
+        ctx.restore();
+      }
+      const shuri = getSprite("shuriken");
+      if (shuri) {
+        const { width, height } = shuri as unknown as { width: number; height: number };
+        const sx = cx - 120 + s * 280;
+        const sc = 2.2;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.imageSmoothingEnabled = false;
+        ctx.translate(sx, footY - 120);
+        ctx.rotate(s * 22);
+        ctx.drawImage(shuri, (-width * sc) / 2, (-height * sc) / 2, width * sc, height * sc);
+        ctx.restore();
+      }
     }
   }
 
   // ---- helpers ------------------------------------------------------------
 
-  private fadeOut(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, phaseLen: number): void {
-    if (t > phaseLen - 0.45) {
-      ctx.fillStyle = `rgba(0,0,0,${clamp01((t - (phaseLen - 0.45)) / 0.45)})`;
+  private fadeEdges(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, phaseLen: number): void {
+    if (t > phaseLen - 0.4) {
+      ctx.fillStyle = `rgba(0,0,0,${clamp01((t - (phaseLen - 0.4)) / 0.4)})`;
       ctx.fillRect(0, 0, w, h);
     }
   }
@@ -226,7 +253,7 @@ export class OpeningScene implements Scene {
     ctx.restore();
   }
 
-  private drawChar(ctx: CanvasRenderingContext2D, id: CharacterId, cx: number, footY: number, dh: number, alpha: number): void {
+  private drawCharFrame(ctx: CanvasRenderingContext2D, id: CharacterId, frame: number, cx: number, footY: number, dh: number, alpha: number): void {
     const ch = CHARACTERS[id];
     const cfg = ch.sprite;
     const sheet = cfg ? getSprite(id) : undefined;
@@ -235,10 +262,10 @@ export class OpeningScene implements Scene {
     if (cfg && sheet) {
       const dw = dh * (cfg.frameW / cfg.frameH);
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sheet, 0, 0, cfg.frameW, cfg.frameH, cx - dw / 2, footY - dh, dw, dh);
+      ctx.drawImage(sheet, frame * cfg.frameW, 0, cfg.frameW, cfg.frameH, cx - dw / 2, footY - dh, dw, dh);
     } else {
       ctx.fillStyle = ch.bodyColor;
-      ctx.fillRect(cx - 24, footY - 56, 48, 56);
+      ctx.fillRect(cx - 26, footY - 60, 52, 60);
     }
     ctx.restore();
   }
@@ -255,5 +282,13 @@ export class OpeningScene implements Scene {
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
     ctx.restore();
+  }
+
+  private tint(hex: string, alpha: number): string {
+    const n = hex.replace("#", "");
+    const r = parseInt(n.slice(0, 2), 16);
+    const g = parseInt(n.slice(2, 4), 16);
+    const b = parseInt(n.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${clamp01(alpha)})`;
   }
 }
