@@ -28,6 +28,8 @@ import shooterUrl from "./game/assets/shooter.png";
 import flyerUrl from "./game/assets/flyer.png";
 import bruteUrl from "./game/assets/brute.png";
 import bossUrl from "./game/assets/boss.png";
+import miasmaEUrl from "./game/assets/miasmaE.png";
+import lightningEUrl from "./game/assets/lightningE.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -58,6 +60,8 @@ loadSprite("shooter", shooterUrl);
 loadSprite("flyer", flyerUrl);
 loadSprite("brute", bruteUrl);
 loadSprite("boss", bossUrl);
+loadSprite("miasmaE", miasmaEUrl);
+loadSprite("lightningE", lightningEUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {

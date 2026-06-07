@@ -23,7 +23,7 @@ const ENEMY_SPRITES = {
   shooter: { id: "shooter", fw: 100, fh: 68, fps: 6, move: [0, 1, 2, 3], attack: [4, 5], faceRight: true, scale: 1.3 },
   flyer: { id: "flyer", fw: 114, fh: 83, fps: 7, move: [0, 1, 2, 3, 4], faceRight: true, scale: 1.35 },
   brute: { id: "brute", fw: 192, fh: 227, fps: 1, move: [0], faceRight: true, scale: 1.7 },
-  boss: { id: "boss", fw: 562, fh: 397, fps: 1, move: [0], faceRight: false, scale: 1.25 },
+  boss: { id: "boss", fw: 562, fh: 397, fps: 1, move: [0], faceRight: true, scale: 1.25 },
 } satisfies Record<string, EnemySpriteCfg>;
 
 const GRAVITY = 1700;
@@ -208,9 +208,10 @@ export class Shooter extends Enemy {
       const dir = ctx.playerCenter.add(this.center.scale(-1)).normalized();
       ctx.fire(
         new Bullet(this.center, dir.scale(Shooter.BULLET_SPEED), {
-          color: "#fca5a5",
-          radius: 5,
+          color: "#9ca3af",
+          radius: 6,
           range: 520,
+          style: "emiasma",
         }),
       );
       ctx.audio.enemyShoot();
@@ -356,9 +357,10 @@ export class Boss extends Enemy {
     const shoot = (angle: number, speed: number) =>
       ctx.fire(
         new Bullet(this.center, new Vector2(Math.cos(angle), Math.sin(angle)).scale(speed), {
-          color: "#fb7185",
-          radius: 6,
+          color: "#c084fc",
+          radius: 7,
           range: 640,
+          style: "elight",
         }),
       );
 

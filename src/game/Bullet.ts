@@ -2,7 +2,7 @@ import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
 import { getSprite } from "./sprites";
 
-export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "shuriken";
+export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "shuriken" | "emiasma" | "elight";
 
 /** Bullet styles that draw a sprite (sliced from a character sheet) when its
  *  image is loaded, falling back to the procedural shapes below otherwise.
@@ -15,6 +15,8 @@ const STYLE_SPRITES: Partial<Record<BulletStyle, { id: string; h: number; spin?:
   laser: { id: "miasmaL", h: 5.0 },
   light: { id: "lightorb", h: 3.4 },
   shuriken: { id: "shuriken", h: 4.5, spin: true },
+  emiasma: { id: "miasmaE", h: 3.0 }, // gray golem's miasma shot
+  elight: { id: "lightningE", h: 2.4 }, // dragon's lightning shot
 };
 
 export interface BulletOptions {
