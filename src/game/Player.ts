@@ -371,8 +371,24 @@ export class Player {
     }
 
     if (this.slashTimer > 0 && this.character.normal.melee) {
-      this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
+      const slash = getSprite("slashE");
+      if (slash) this.drawSlashSprite(ctx, slash, this.character.normal.melee.range);
+      else this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
     }
+  }
+
+  /** The melee swing as a slash-effect sprite, swept along the aim direction. */
+  private drawSlashSprite(ctx: CanvasRenderingContext2D, img: CanvasImageSource, range: number): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const w = range * 1.3; // the arc spans roughly the reach
+    const h = w * (height / width);
+    ctx.save();
+    ctx.translate(this.centerX, this.y + STAND_H / 2);
+    ctx.rotate(this.slashAngle); // art points right (+x) = a forward swing
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = Math.min(1, (this.slashTimer / SLASH_TIME) * 1.5);
+    ctx.drawImage(img, -w * 0.12, -h / 2, w, h); // tail near the body, arc forward
+    ctx.restore();
   }
 
   /** Fallback look when no sprite sheet is loaded: a coloured body + gun nub. */
