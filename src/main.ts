@@ -19,7 +19,7 @@ import dashUrl from "./game/assets/dashE.png";
 import shockUrl from "./game/assets/shockE.png";
 import healBurstUrl from "./game/assets/heal_burst.png";
 import healPillarUrl from "./game/assets/heal_pillar.png";
-import hammerUrl from "./game/assets/hammerE.png";
+import hammerPoseUrl from "./game/assets/hammerPoseE.png";
 import "./style.css";
 
 // Pixel-art sheets are loaded asynchronously; characters fall back to a
@@ -41,7 +41,7 @@ loadSprite("dashE", dashUrl);
 loadSprite("shockE", shockUrl);
 loadSprite("healBurst", healBurstUrl);
 loadSprite("healPillar", healPillarUrl);
-loadSprite("hammerE", hammerUrl);
+loadSprite("hammerPoseE", hammerPoseUrl);
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {

@@ -54,6 +54,8 @@ export class Player {
   private ammo = 0;
   private animTime = 0; // drives sprite animation frame selection
   private shootFx = 0; // brief timer so the "shoot" pose lingers after firing
+  private bombPose = 0; // shows the bomb charge pose while > 0
+  private actionLock = 0; // ignores move/jump/shoot input while > 0 (bomb wind-up)
 
   hp = MAX_HP;
   bombs = 1;
@@ -108,14 +110,18 @@ export class Player {
     if (this.invuln > 0) this.invuln -= dt;
     if (this.slashTimer > 0) this.slashTimer -= dt;
     if (this.shootFx > 0) this.shootFx -= dt;
+    if (this.bombPose > 0) this.bombPose -= dt;
+    if (this.actionLock > 0) this.actionLock -= dt;
     this.animTime += dt;
 
-    const move = input.horizontal();
+    // During the bomb wind-up the player is rooted in place (no input acts).
+    const locked = this.actionLock > 0;
+    const move = locked ? 0 : input.horizontal();
     this.vx = move * MOVE_SPEED;
     if (move !== 0) this.facing = move;
 
     if (this.onGround) this.jumpsUsed = 0;
-    if (input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
+    if (!locked && input.wasPressed("Space") && this.jumpsUsed < this.maxJumps) {
       if (!this.onGround) this.airJumpFx = true; // a mid-air (double) jump
       this.vy = -JUMP_SPEED;
       this.onGround = false;
@@ -137,7 +143,13 @@ export class Player {
     this.resolveVertical(level);
     this.x = clamp(this.x, 0, level.width - WIDTH);
 
-    this.updateShooting(dt, input, bullets, audio);
+    if (!locked) this.updateShooting(dt, input, bullets, audio);
+  }
+
+  /** Begin a bomb wind-up: hold the charge pose and ignore input for `dur`. */
+  chargeBomb(dur: number): void {
+    this.bombPose = dur;
+    this.actionLock = dur;
   }
 
   private resolveHorizontal(level: Level): void {
@@ -324,6 +336,8 @@ export class Player {
     this.jumpsUsed = 0;
     this.slashTimer = 0;
     this.dashTimer = 0;
+    this.bombPose = 0;
+    this.actionLock = 0;
     this.airJumpFx = false;
     this.pendingMelee = null;
     this.special = false;
@@ -333,6 +347,15 @@ export class Player {
 
   render(ctx: CanvasRenderingContext2D): void {
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) return;
+
+    // A standalone pose overlay during the bomb wind-up (e.g. E's hammer).
+    if (this.bombPose > 0 && this.character.bombPoseSprite) {
+      const ov = getSprite(this.character.bombPoseSprite);
+      if (ov) {
+        this.drawOverlayPose(ctx, ov);
+        return;
+      }
+    }
 
     const sheet = this.character.sprite ? getSprite(this.character.id) : undefined;
     if (this.character.sprite && sheet) {
@@ -357,10 +380,30 @@ export class Player {
     else ctx.fillRect(this.x - 12, gy - 2, 12, 5);
   }
 
+  /** Draw a standalone (already body-centred, foot-anchored) pose sprite. */
+  private drawOverlayPose(ctx: CanvasRenderingContext2D, img: CanvasImageSource): void {
+    const { width, height } = img as unknown as { width: number; height: number };
+    const drawH = STAND_H * 1.5;
+    const drawW = drawH * (width / height);
+    const dx = this.centerX - drawW / 2;
+    const dy = this.y + STAND_H - drawH;
+    ctx.imageSmoothingEnabled = false;
+    ctx.save();
+    if (this.facing < 0) {
+      ctx.translate(dx + drawW, dy);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, drawW, drawH);
+    } else {
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+    }
+    ctx.restore();
+  }
+
   /** Pick the current sheet frame from the active animation. */
   private spriteFrame(cfg: SpriteConfig): number {
     let frames: number[];
-    if (this.shootFx > 0) frames = this.special && cfg.anims.magic ? cfg.anims.magic : cfg.anims.shoot;
+    if (this.bombPose > 0 && cfg.anims.bomb) frames = cfg.anims.bomb;
+    else if (this.shootFx > 0) frames = this.special && cfg.anims.magic ? cfg.anims.magic : cfg.anims.shoot;
     else if (!this.onGround && cfg.anims.jump) frames = cfg.anims.jump;
     else if (this.onGround && Math.abs(this.vx) > 1) frames = cfg.anims.run;
     else frames = cfg.anims.idle;

@@ -43,6 +43,7 @@ export interface Character {
   bomb: Bomb; // button K
   airJumps?: number; // extra mid-air jumps (e.g. 1 = double jump)
   sprite?: SpriteConfig; // pixel-art sheet; falls back to a coloured box if absent
+  bombPoseSprite?: string; // standalone sprite drawn during the bomb wind-up
 }
 
 export const CHARACTERS: Record<CharacterId, Character> = {
@@ -71,6 +72,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         jump: [9], // a mid-stride run frame reads as a leap
         shoot: [10, 11, 12, 13, 14],
         magic: [15, 16, 17],
+        bomb: [15, 16, 17], // fire-magic pose during the bomb charge
       },
     },
   },
@@ -99,6 +101,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         jump: [9],
         shoot: [10, 11, 12, 13],
         magic: [14, 15, 16],
+        bomb: [14, 15, 16], // dark-flame cast pose during the bomb charge
       },
     },
   },
@@ -128,6 +131,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         run: [4, 5, 6, 7, 8, 9],
         jump: [14, 15, 16, 17], // wing-flap, fitting her double jump
         shoot: [10, 11, 12, 13],
+        bomb: [10, 11, 12, 13], // light cast pose during the heal charge
       },
     },
   },
@@ -178,6 +182,7 @@ export const CHARACTERS: Record<CharacterId, Character> = {
         magic: [14, 15, 16], // shuriken throw
       },
     },
+    bombPoseSprite: "hammerPoseE", // raise the hammer during the bomb charge
   },
 };
 
