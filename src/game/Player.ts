@@ -57,6 +57,7 @@ export class Player {
   private bombPose = 0; // shows the bomb charge pose while > 0
   private bombPoseDur = 0; // total wind-up length, for picking the pose phase
   private actionLock = 0; // ignores move/jump/shoot input while > 0 (bomb wind-up)
+  private downed = false; // knocked out: drawn lying on the ground (death pause)
 
   hp = MAX_HP;
   bombs = 1;
@@ -328,6 +329,14 @@ export class Player {
     return true;
   }
 
+  /** Mark the player as knocked out — drawn lying on the ground during the
+   *  brief death pause before respawning. */
+  down(): void {
+    this.downed = true;
+    this.vx = 0;
+    this.vy = 0;
+  }
+
   respawn(x: number, y: number): void {
     this.x = x;
     this.y = y;
@@ -345,9 +354,14 @@ export class Player {
     this.special = false;
     this.ammo = 0;
     this.bombs = 1;
+    this.downed = false;
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    if (this.downed) {
+      this.drawDowned(ctx);
+      return;
+    }
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) return;
 
     // Standalone pose overlay during the bomb wind-up (e.g. E's hammer),
@@ -375,6 +389,29 @@ export class Player {
       if (slash) this.drawSlashSprite(ctx, slash, this.character.normal.melee.range);
       else this.drawSlash(ctx, this.character.normal.melee.range, this.character.normal.melee.arc);
     }
+  }
+
+  /** Knocked-out pose: the sprite tipped a quarter-turn so it lies flat on the
+   *  ground, pivoting on the feet. Shown during the brief death pause. */
+  private drawDowned(ctx: CanvasRenderingContext2D): void {
+    const cfg = this.character.sprite;
+    const sheet = cfg ? getSprite(this.character.id) : undefined;
+    const cx = this.centerX;
+    const footY = this.y + STAND_H;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(cx, footY - 16); // lift the pivot so the body rests on the ground
+    ctx.rotate(this.facing > 0 ? -Math.PI / 2 : Math.PI / 2);
+    if (cfg && sheet) {
+      const drawH = STAND_H * 1.3;
+      const drawW = drawH * (cfg.frameW / cfg.frameH);
+      const frame = cfg.anims.idle[0] ?? 0;
+      ctx.drawImage(sheet, frame * cfg.frameW, 0, cfg.frameW, cfg.frameH, -drawW / 2, -drawH, drawW, drawH);
+    } else {
+      ctx.fillStyle = this.character.bodyColor;
+      ctx.fillRect(-STAND_H / 2, -WIDTH / 2, STAND_H, WIDTH);
+    }
+    ctx.restore();
   }
 
   /** The melee swing as a slash-effect sprite, swept along the aim direction. */

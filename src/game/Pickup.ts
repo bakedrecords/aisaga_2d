@@ -19,23 +19,49 @@ const SPRITES: Record<PickupConfig["kind"], { id: string; h: number }> = {
   score: { id: "item_gold", h: 30 },
 };
 
-/** A floating crate the player walks into: a weapon, health, a bomb or score. */
+const DROP_GRAVITY = 900;
+
+/** A floating crate the player walks into: a weapon, health, a bomb or score.
+ *  When dropped in mid-air (e.g. from a downed flyer) it falls straight down
+ *  from the kill height and then rests/bobs on the ground. */
 export class Pickup {
   alive = true;
   private t = Math.random() * Math.PI * 2;
+  private readonly restTop: number;
+  private cy: number;
+  private vy = 0;
+  private landed: boolean;
 
   constructor(
     private readonly x: number,
-    private readonly groundY: number,
+    groundY: number,
     readonly config: PickupConfig,
-  ) {}
+    spawnY?: number,
+  ) {
+    this.restTop = groundY - HEIGHT - 2;
+    if (spawnY !== undefined && spawnY < this.restTop) {
+      this.cy = spawnY;
+      this.landed = false;
+    } else {
+      this.cy = this.restTop;
+      this.landed = true;
+    }
+  }
 
   private get y(): number {
-    return this.groundY - HEIGHT - 2 - Math.sin(this.t) * 3;
+    return this.landed ? this.restTop - Math.sin(this.t) * 3 : this.cy;
   }
 
   update(dt: number): void {
     this.t += dt * 4;
+    if (!this.landed) {
+      this.vy += DROP_GRAVITY * dt;
+      this.cy += this.vy * dt;
+      if (this.cy >= this.restTop) {
+        this.cy = this.restTop;
+        this.landed = true;
+      }
+    }
   }
 
   get bounds(): Rect {

@@ -27,7 +27,9 @@ const TIME_RIPPLE_TIME = 0.6;
 const SUMMON_LASER_GAP = 0.16; // delay before the second summon laser
 const BOMB_WINDUP = 0.5; // charge time before a bomb fires
 
-type State = "playing" | "won" | "lost" | "complete";
+type State = "playing" | "downed" | "won" | "lost" | "complete";
+
+const DOWNED_TIME = 1.0; // how long the player lies downed before respawning
 
 /** The main run-and-gun gameplay: clear the stage, survive, beat the boss. */
 export class PlayScene implements Scene {
@@ -56,6 +58,7 @@ export class PlayScene implements Scene {
   private score = 0;
   private lives = DEFAULT_LIVES;
   private state: State = "playing";
+  private downedTimer = 0;
 
   constructor(
     private readonly viewWidth: number,
@@ -138,6 +141,10 @@ export class PlayScene implements Scene {
   }
 
   update(dt: number, input: Input, game: SceneManager): void {
+    if (this.state === "downed") {
+      this.updateDowned(dt);
+      return;
+    }
     if (this.state !== "playing") {
       this.updateEndState(input, game);
       return;
@@ -266,6 +273,27 @@ export class PlayScene implements Scene {
       );
     } else if (input.wasPressed("KeyT")) {
       game.changeScene(new TitleScene());
+    }
+  }
+
+  /** Hold on the downed pose for a beat, then respawn or end the run. */
+  private updateDowned(dt: number): void {
+    this.downedTimer -= dt;
+    sound.update();
+    this.camera.update(dt); // let the shake settle out
+    this.particles.update(dt);
+    this.fx.update(dt);
+    if (this.downedTimer > 0) return;
+    if (this.lives > 1) {
+      this.lives -= 1;
+      this.respawnAtStart();
+      this.state = "playing";
+    } else {
+      this.lives = 0;
+      this.particles.burst(this.player.center, "#fca5a5", 26, 340, { life: 0.6, size: 4 });
+      this.state = "lost";
+      sound.gameover();
+      sound.setBgm(false);
     }
   }
 
@@ -487,7 +515,8 @@ export class PlayScene implements Scene {
     sound.explosion();
     this.camera.shake(6);
     const drop = rollDrop();
-    if (drop) this.pickups.push(new Pickup(e.center.x - 14, this.level.groundY, drop));
+    // Drop falls straight down from where the enemy died (e.g. a downed flyer).
+    if (drop) this.pickups.push(new Pickup(e.center.x - 14, this.level.groundY, drop, e.center.y - 12));
   }
 
   private handleEnemyBullets(): void {
@@ -552,18 +581,13 @@ export class PlayScene implements Scene {
 
   private checkWinLose(): void {
     if (!this.player.alive) {
+      // Go limp for a beat (downed pose) before respawning or ending the run.
+      this.state = "downed";
+      this.downedTimer = DOWNED_TIME;
+      this.player.down();
       this.camera.shake(16);
+      this.particles.burst(this.player.center, "#fca5a5", 22, 300, { life: 0.6, size: 4 });
       sound.explosion();
-      if (this.lives > 1) {
-        this.lives -= 1;
-        this.respawnAtStart();
-      } else {
-        this.lives = 0;
-        this.particles.burst(this.player.center, "#fca5a5", 26, 340, { life: 0.6, size: 4 });
-        this.state = "lost";
-        sound.gameover();
-        sound.setBgm(false);
-      }
       return;
     }
     const cleared = this.level.isBossStage
@@ -1114,7 +1138,7 @@ export class PlayScene implements Scene {
   }
 
   private drawBanner(ctx: CanvasRenderingContext2D): void {
-    if (this.state === "playing") return;
+    if (this.state === "playing" || this.state === "downed") return;
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);

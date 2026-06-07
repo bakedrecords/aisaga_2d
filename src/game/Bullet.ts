@@ -2,7 +2,7 @@ import { Rect } from "../engine/Rect";
 import { Vector2 } from "../engine/Vector2";
 import { getSprite } from "./sprites";
 
-export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "shuriken" | "emiasma" | "elight";
+export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "bulletmg" | "shuriken" | "emiasma" | "elight";
 
 /** Bullet styles that draw a sprite (sliced from a character sheet) when its
  *  image is loaded, falling back to the procedural shapes below otherwise.
@@ -11,6 +11,7 @@ export type BulletStyle = "flame" | "laser" | "dark" | "light" | "bullet" | "shu
 const STYLE_SPRITES: Partial<Record<BulletStyle, { id: string; h: number; spin?: boolean }>> = {
   flame: { id: "fire", h: 2.6 },
   bullet: { id: "bullet", h: 2.4 },
+  bulletmg: { id: "bulletMG", h: 2.0 }, // Tsukahara's machine-gun round
   dark: { id: "miasmaS", h: 3.2 },
   laser: { id: "miasmaL", h: 5.0 },
   light: { id: "lightorb", h: 3.4 },

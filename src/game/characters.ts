@@ -141,15 +141,15 @@ export const CHARACTERS: Record<CharacterId, Character> = {
     attribute: "時空",
     bodyColor: "#22d3ee",
     accent: "#67e8f9",
-    // Same gun as A.
+    // Same gun as A — a brass pistol round.
     normal: {
       name: "GUN", fireDelay: 0.16, pellets: 1, spread: 0, speed: 680,
-      damage: 1, radius: 4, color: "#fde047", range: 440, ammo: 0,
+      damage: 1, radius: 4, color: "#fde047", range: 440, ammo: 0, style: "bullet",
     },
-    // The machine gun, revived for this character.
+    // The machine gun, revived for this character — cyan energy rounds.
     special: {
       name: "M.GUN", fireDelay: 0.07, pellets: 1, spread: 0.08, speed: 780,
-      damage: 1, radius: 3, color: "#67e8f9", range: 540, ammo: 40,
+      damage: 1, radius: 4, color: "#67e8f9", range: 540, ammo: 40, style: "bulletmg",
     },
     bomb: { kind: "timestop", duration: 3 },
     // Sliced from charD.png: idle / run / pistol(shoot) / m.gun(magic) / timestop(bomb).
