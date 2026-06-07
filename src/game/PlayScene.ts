@@ -596,7 +596,6 @@ export class PlayScene implements Scene {
     ctx.translate(-Math.round(this.camera.x) + this.camera.shakeX, this.camera.shakeY);
     this.drawLevel(ctx);
     this.drawSpikes(ctx);
-    if (!this.level.isBossStage) this.drawGoal(ctx);
     for (const p of this.pickups) p.render(ctx);
     for (const e of this.enemies) e.render(ctx);
     if (this.boss && this.boss.alive) this.boss.render(ctx);
@@ -972,34 +971,20 @@ export class PlayScene implements Scene {
     }
   }
 
-  private drawGoal(ctx: CanvasRenderingContext2D): void {
-    const x = this.level.goalX;
-    const top = this.level.groundY - 170;
-    ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(x, top, 6, 170);
-    ctx.fillStyle = this.state === "won" || this.state === "complete" ? "#4ade80" : "#fbbf24";
-    ctx.beginPath();
-    ctx.moveTo(x + 6, top);
-    ctx.lineTo(x + 48, top + 16);
-    ctx.lineTo(x + 6, top + 32);
-    ctx.closePath();
-    ctx.fill();
-  }
-
   private drawHud(ctx: CanvasRenderingContext2D): void {
-    // --- top-left: HP (gold crosses), lives portrait, score ---
-    const cross = getSprite("item_cross");
-    const ch = 22;
+    // --- top-left: HP (hearts), lives portrait, score ---
+    const heart = getSprite("item_heart");
+    const ch = 20;
     let hx = 16;
     for (let i = 0; i < this.player.maxHp; i++) {
-      if (cross) {
-        const { width, height } = cross as unknown as { width: number; height: number };
+      if (heart) {
+        const { width, height } = heart as unknown as { width: number; height: number };
         const w = ch * (width / height);
         ctx.globalAlpha = i < this.player.hp ? 1 : 0.22;
         ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(cross, hx, 12, w, ch);
+        ctx.drawImage(heart, hx, 13, w, ch);
         ctx.globalAlpha = 1;
-        hx += w + 1;
+        hx += w + 3;
       } else {
         ctx.fillStyle = i < this.player.hp ? "#ef4444" : "#475569";
         ctx.fillRect(hx, 14, 18, 18);
