@@ -5,6 +5,7 @@ import { Bullet } from "./Bullet";
 import { Camera } from "./Camera";
 import { type Bomb, CHARACTERS, type Character, type CharacterId } from "./characters";
 import { Boss, Brute, type Enemy, type EnemyContext, Flyer, Shooter, Walker } from "./enemies";
+import { EXPLOSION_FRAMES, FxLayer, HIT_FRAMES } from "./Fx";
 import { Level } from "./Level";
 import { Particles } from "./Particles";
 import { Pickup, type PickupConfig } from "./Pickup";
@@ -41,6 +42,7 @@ export class PlayScene implements Scene {
   private enemyBullets: Bullet[] = [];
   private pickups: Pickup[] = [];
   private particles = new Particles();
+  private fx = new FxLayer();
   private bombFlash = 0;
   private bombFire: { cx: number; cy: number; t: number } | null = null;
   private summonFx: { cx: number; footY: number; face: number; t: number; shots: number } | null = null;
@@ -200,6 +202,7 @@ export class PlayScene implements Scene {
     for (const b of this.playerBullets) b.update(dt);
     for (const p of this.pickups) p.update(dt);
     this.particles.update(dt);
+    this.fx.update(dt);
     if (this.bombFlash > 0) this.bombFlash -= dt;
     if (this.bombFire) {
       this.bombFire.t += dt;
@@ -284,6 +287,7 @@ export class PlayScene implements Scene {
           b.hitTargets.add(e);
           this.hurtEnemy(e, b.damage);
           this.particles.burst(e.center, "#c4b5fd", 4, 160, { life: 0.2, size: 2, gravity: 0 });
+          this.fx.spawn(HIT_FRAMES, b.pos.x, b.pos.y, { dur: 0.16, scale: 0.5, grow: 1.5, rot: Math.random() * Math.PI });
         } else {
           this.hurtEnemy(e, b.damage);
           this.onBulletImpact(b);
@@ -295,6 +299,7 @@ export class PlayScene implements Scene {
 
   private onBulletImpact(b: Bullet): void {
     this.particles.burst(b.pos, "#fef9c3", 5, 160, { life: 0.25, size: 2, gravity: 0 });
+    this.fx.spawn(HIT_FRAMES, b.pos.x, b.pos.y, { dur: 0.16, scale: 0.55, grow: 1.5, rot: Math.random() * Math.PI });
     b.kill();
   }
 
@@ -346,6 +351,12 @@ export class PlayScene implements Scene {
     this.particles.burst(c, "#fde047", 48, 820, { life: 0.6, size: 6, gravity: 60 });
     this.particles.burst(c, "#fb923c", 36, 620, { life: 0.6, size: 6, gravity: 60 });
     this.bombFire = { cx: c.x, cy: c.y, t: 0 };
+    this.fx.spawn(EXPLOSION_FRAMES, c.x, c.y, { dur: 0.55, scale: 2.2 });
+    for (let i = 0; i < 6; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 40 + Math.random() * 130;
+      this.fx.spawn(EXPLOSION_FRAMES, c.x + Math.cos(a) * r, c.y + Math.sin(a) * r, { dur: 0.4 + Math.random() * 0.25, scale: 1.0 + Math.random() * 0.7 });
+    }
     sound.explosion();
     this.camera.shake(30);
     this.bombFlash = 0.18;
@@ -400,6 +411,10 @@ export class PlayScene implements Scene {
     this.particles.burst(at, "#cbd5e1", 44, 360, { life: 0.6, size: 5, gravity: 220 });
     this.particles.burst(at, "#94a3b8", 30, 240, { life: 0.7, size: 4, gravity: 160 });
     this.particles.burst(at, "#a78bfa", 18, 300, { life: 0.5, size: 4, gravity: 120 });
+    for (let i = 0; i < 5; i++) {
+      const ox = (Math.random() - 0.5) * reach * 1.3;
+      this.fx.spawn(EXPLOSION_FRAMES, this.player.centerX + ox, gy - 12, { dur: 0.4 + Math.random() * 0.2, scale: 0.9 + Math.random() * 0.6 });
+    }
     sound.explosion();
     this.camera.shake(44); // a heavy, screen-rattling impact
   }
@@ -454,14 +469,22 @@ export class PlayScene implements Scene {
 
   private onEnemyKilled(e: Enemy): void {
     this.score += e.score;
+    const scale = e.bounds.w / 58; // size the blast to the enemy
     if (e.isBoss) {
       this.particles.burst(e.center, "#fdba74", 60, 460, { life: 0.8, size: 6, gravity: 120 });
       this.particles.burst(e.center, "#f87171", 40, 360, { life: 0.8, size: 6, gravity: 120 });
+      // a cluster of explosions across the boss body
+      for (let i = 0; i < 5; i++) {
+        const ox = (Math.random() - 0.5) * e.bounds.w;
+        const oy = (Math.random() - 0.5) * e.bounds.h;
+        this.fx.spawn(EXPLOSION_FRAMES, e.center.x + ox, e.center.y + oy, { dur: 0.45 + Math.random() * 0.2, scale: scale * 0.7 });
+      }
       sound.explosion();
       this.camera.shake(20);
       return;
     }
     this.particles.burst(e.center, "#f87171", 16, 320, { life: 0.5, size: 4 });
+    this.fx.spawn(EXPLOSION_FRAMES, e.center.x, e.center.y, { dur: 0.4, scale: Math.max(0.6, scale) });
     sound.explosion();
     this.camera.shake(6);
     const drop = rollDrop();
@@ -580,6 +603,7 @@ export class PlayScene implements Scene {
     for (const b of this.playerBullets) b.render(ctx);
     for (const b of this.enemyBullets) b.render(ctx);
     this.particles.render(ctx);
+    this.fx.render(ctx);
     this.drawDashFx(ctx);
     this.drawTimeRipple(ctx);
     this.drawSummonDark(ctx); // dim the scene so the summon/lasers pop
@@ -963,38 +987,87 @@ export class PlayScene implements Scene {
   }
 
   private drawHud(ctx: CanvasRenderingContext2D): void {
+    // --- top-left: HP (gold crosses), lives portrait, score ---
+    const cross = getSprite("item_cross");
+    const ch = 22;
+    let hx = 16;
     for (let i = 0; i < this.player.maxHp; i++) {
-      ctx.fillStyle = i < this.player.hp ? "#ef4444" : "#475569";
-      ctx.fillRect(16 + i * 24, 16, 18, 18);
+      if (cross) {
+        const { width, height } = cross as unknown as { width: number; height: number };
+        const w = ch * (width / height);
+        ctx.globalAlpha = i < this.player.hp ? 1 : 0.22;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(cross, hx, 12, w, ch);
+        ctx.globalAlpha = 1;
+        hx += w + 1;
+      } else {
+        ctx.fillStyle = i < this.player.hp ? "#ef4444" : "#475569";
+        ctx.fillRect(hx, 14, 18, 18);
+        hx += 20;
+      }
     }
 
+    const ly = 40;
+    let lx = 18;
+    if (this.drawCharIcon(ctx, lx, ly - 2, 24)) lx += 26;
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "bold 15px system-ui, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "16px system-ui, sans-serif";
-    ctx.fillText(`× ${this.lives}`, 16 + this.player.maxHp * 24 + 6, 31);
+    ctx.fillText("×", lx, ly + 16);
+    this.drawNumber(ctx, String(this.lives), lx + 13, ly + 2, 17);
 
+    const gold = getSprite("item_gold");
+    const sy = 66;
+    let scx = 18;
+    if (gold) {
+      const { width, height } = gold as unknown as { width: number; height: number };
+      const w = 20 * (width / height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(gold, scx, sy - 3, w, 20);
+      scx += w + 5;
+    }
     ctx.fillStyle = "#e2e8f0";
-    ctx.font = "20px system-ui, sans-serif";
-    ctx.fillText(`SCORE ${this.score}`, 16, 60);
+    ctx.font = "bold 17px system-ui, sans-serif";
+    this.drawNumber(ctx, String(this.score), scx, sy, 17);
 
-    ctx.fillStyle = this.character.accent;
-    ctx.font = "13px system-ui, sans-serif";
-    ctx.fillText(`${this.character.name}・${this.character.attribute}`, 16, 80);
-
+    // --- top-center: stage name ---
     ctx.textAlign = "center";
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "16px system-ui, sans-serif";
-    ctx.fillText(this.stageDef.name, this.viewWidth / 2, 28);
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "bold 16px system-ui, sans-serif";
+    ctx.fillText(this.stageDef.name, this.viewWidth / 2, 26);
 
+    // --- top-right: weapon name + ammo, skill stock ---
+    const right = this.viewWidth - 16;
     ctx.textAlign = "right";
     ctx.fillStyle = "#fde047";
-    ctx.font = "bold 24px system-ui, sans-serif";
-    const ammo = this.player.hasInfiniteAmmo ? "∞" : String(this.player.weaponAmmo);
-    ctx.fillText(`${this.player.weaponName}  ${ammo}`, this.viewWidth - 16, 32);
+    ctx.font = "bold 22px system-ui, sans-serif";
+    ctx.fillText(this.player.weaponName, right, 28);
+    ctx.fillStyle = "#e2e8f0";
+    if (this.player.hasInfiniteAmmo) {
+      ctx.font = "bold 20px system-ui, sans-serif";
+      ctx.fillText("∞", right, 54);
+    } else {
+      this.drawNumber(ctx, String(this.player.weaponAmmo), right, 38, 18, "right");
+    }
 
-    ctx.fillStyle = this.player.bombs > 0 ? "#fbbf24" : "#475569";
-    ctx.font = "bold 18px system-ui, sans-serif";
-    ctx.fillText(`SKILL ×${this.player.bombs}  [K]`, this.viewWidth - 16, 60);
+    const sIcon = getSprite("item_s");
+    const sky = 62;
+    const cntStr = String(this.player.bombs);
+    const nW = this.numberWidth(cntStr, 18);
+    ctx.globalAlpha = this.player.bombs > 0 ? 1 : 0.45;
+    this.drawNumber(ctx, cntStr, right, sky, 18, "right");
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "bold 15px system-ui, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("×", right - nW - 3, sky + 15);
+    if (sIcon) {
+      const { width, height } = sIcon as unknown as { width: number; height: number };
+      const ih = 24;
+      const iw = ih * (width / height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(sIcon, right - nW - 14 - iw, sky - 3, iw, ih);
+    }
+    ctx.globalAlpha = 1;
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#94a3b8";
@@ -1004,6 +1077,63 @@ export class PlayScene implements Scene {
       16,
       this.viewHeight - 16,
     );
+  }
+
+  /** Total on-screen width of a number rendered with the sprite font. */
+  private numberWidth(text: string, h: number): number {
+    let w = 0;
+    for (const chr of text) {
+      const img = getSprite("n" + chr);
+      if (img) {
+        const { width, height } = img as unknown as { width: number; height: number };
+        w += h * (width / height) + 2;
+      } else {
+        w += h * 0.58;
+      }
+    }
+    return Math.max(0, w - 2);
+  }
+
+  /** Draw an integer string with the sliced digit sprites (falls back to the
+   *  canvas font when the glyphs aren't loaded). `y` is the glyph top. */
+  private drawNumber(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    h: number,
+    align: "left" | "right" = "left",
+  ): void {
+    let cx = align === "right" ? x - this.numberWidth(text, h) : x;
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = "left";
+    for (const chr of text) {
+      const img = getSprite("n" + chr);
+      if (img) {
+        const { width, height } = img as unknown as { width: number; height: number };
+        const w = h * (width / height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, cx, y, w, h);
+        cx += w + 2;
+      } else {
+        ctx.fillText(chr, cx, y + h * 0.85);
+        cx += h * 0.58;
+      }
+    }
+    ctx.textAlign = prevAlign;
+  }
+
+  /** Draw the chosen character's idle frame as a small portrait. Returns false
+   *  (so the caller can adjust layout) when the sheet isn't available. */
+  private drawCharIcon(ctx: CanvasRenderingContext2D, x: number, y: number, h: number): boolean {
+    const cfg = this.character.sprite;
+    const sheet = cfg ? getSprite(this.character.id) : undefined;
+    if (!cfg || !sheet) return false;
+    const frame = cfg.anims.idle[0] ?? 0;
+    const w = h * (cfg.frameW / cfg.frameH);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sheet, frame * cfg.frameW, 0, cfg.frameW, cfg.frameH, x, y, w, h);
+    return true;
   }
 
   private drawBossBar(ctx: CanvasRenderingContext2D): void {
