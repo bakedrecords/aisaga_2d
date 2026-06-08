@@ -271,7 +271,7 @@ body.portrait .deck-links a:active {
   color: #bfdbfe;
 }
 
-/* The song-MV credit is redundant with the channel link in portrait. */
+/* The song-MV credit (title screen only) tucks below the TITLE button. */
 body.portrait #mv-link {
-  display: none;
+  bottom: calc(var(--deck-h) - 158px);
 }
