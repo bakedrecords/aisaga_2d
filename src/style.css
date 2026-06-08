@@ -271,7 +271,8 @@ body.portrait .deck-links a:active {
   color: #bfdbfe;
 }
 
-/* The song-MV credit (title screen only) tucks below the TITLE button. */
+/* The song-MV credit (title screen only) stays on the screen — pinned to
+   its bottom edge, just above the deck — so it's well clear of the buttons. */
 body.portrait #mv-link {
-  bottom: calc(var(--deck-h) - 158px);
+  bottom: calc(var(--deck-h) + 4px);
 }
